@@ -16,8 +16,8 @@ func init() {
 
 var graphdriverCmd = &cobra.Command{
     Use:   "graphdriver",
-    Short: "start the gear graphdriver",
-    Long:  `start the gear graphdriver`,
+    Short: "Start the gear graphdriver",
+    Long:  `Start the gear graphdriver`,
     Args:  cobra.NoArgs,
     Run: func(cmd *cobra.Command, args []string) {
         gearGraphDriver := &gearDriver.Driver{}

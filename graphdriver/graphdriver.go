@@ -10,6 +10,7 @@ import (
     "context"
     "io"
     "time"
+    "sync"
     // "strconv"
 
     "github.com/docker/docker/pkg/idtools"
@@ -22,33 +23,54 @@ import (
     // rsystem "github.com/opencontainers/runc/libcontainer/system"
     "github.com/docker/docker/pkg/directory"
     "github.com/docker/docker/daemon/graphdriver"
+    "github.com/sirupsen/logrus"
     graphPlugin "github.com/docker/go-plugins-helpers/graphdriver"
 )
 
 var (
     // untar defines the untar method
     untar = chrootarchive.UntarUncompressed
-
     // ApplyUncompressedLayer defines the unpack method used by the graph
     // driver
     ApplyUncompressedLayer = chrootarchive.ApplyUncompressedLayer
 )
 
-var (
-    backingFs             = "<unknown>"
-    projectQuotaSupported = false
+const (
+    driverName = "geargraphdriver"
+    linkDir    = "l"
+    lowerFile  = "lower"
+    maxDepth   = 128
 
-    indexOff string
+    // idLength represents the number of random characters
+    // which can be used to create the unique link identifier
+    // for every layer. If this value is too long then the
+    // page size limit for the mount command may be exceeded.
+    // The idLength should be selected such that following equation
+    // is true (512 is a buffer for label metadata).
+    // ((idLength + len(linkDir) + 1) * maxDepth) <= (pageSize - 512)
+    idLength = 26
 )
 
 type Driver struct {
     home          string
     uidMaps       []idtools.IDMap
     gidMaps       []idtools.IDMap
-    options       []string
+    ctr           *graphdriver.RefCounter
     naiveDiff     graphdriver.DiffDriver
+    supportsDType bool
     locker        *locker.Locker
 }
+
+var (
+    logger                = logrus.WithField("storage-driver", "geargraphdriver")
+    backingFs             = "<unknown>"
+    projectQuotaSupported = false
+
+    useNaiveDiffLock sync.Once
+    useNaiveDiffOnly bool
+
+    indexOff string
+)
 
 func (d *Driver) Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) error{
     fmt.Println("\nInit func parameters: ")
@@ -57,16 +79,6 @@ func (d *Driver) Init(home string, options []string, uidMaps, gidMaps []idtools.
     fmt.Println("  uidMaps: ", uidMaps)
     fmt.Println("  gidMaps: ", gidMaps)
     
-    if home == "" {
-        fmt.Println("Init func: home is not set, I will set it to default: ~/.mydriver/")
-    }
-    d.home = home
-    d.uidMaps = uidMaps
-    d.gidMaps = gidMaps
-    d.options = options
-
-    // d.naiveDiff = graphdriver.NewNaiveDiffDriver(d, uidMaps, gidMaps)
-
     return nil
 }
 
