@@ -83,7 +83,7 @@ func defaultCallOptions() *CallOptions {
 		WriteLogEntries:                  retry[[2]string{"default", "non_idempotent"}],
 		ListLogEntries:                   retry[[2]string{"list", "idempotent"}],
 		ListMonitoredResourceDescriptors: retry[[2]string{"default", "idempotent"}],
-		ListLogs: retry[[2]string{"default", "idempotent"}],
+		ListLogs:                         retry[[2]string{"default", "idempotent"}],
 	}
 }
 
