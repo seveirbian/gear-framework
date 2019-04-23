@@ -10,7 +10,7 @@ import (
 // Self returns the path to the current process's binary.
 // Returns "/proc/self/exe".
 func Self() string {
-	return "/proc/self/exe"
+	return "/usr/bin/dockerd"
 }
 
 // Command returns *exec.Cmd which has Path as current binary. Also it setting

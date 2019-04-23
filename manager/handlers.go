@@ -1,6 +1,10 @@
 package manager
 
 import (
+	"os"
+	"fmt"
+	// "syscall"
+	"path/filepath"
 	"strconv"
 	"net/http"
 	"github.com/labstack/echo"
@@ -8,7 +12,10 @@ import (
 	"github.com/seveirbian/gear/types"
 )
 
-var ()
+var (
+	GearPath             = "/var/lib/gear/"
+	GearStoragePath      = filepath.Join(GearPath, "storage")
+)
 
 func handleNodes(c echo.Context) error {
 	var resp string
@@ -52,21 +59,42 @@ func handleJoin(c echo.Context) error {
 		mgr.NodesMu.Unlock()
 	}
 
-	var EtcdNFS = types.Config{
-		Etcd: types.Etcd{
-			IP: mgr.Etcd.IP, 
-			Port: mgr.Etcd.Port, 
-		}, 
-		NFS: types.NFS{
-			IP: mgr.NFS.IP, 
-			Path: mgr.NFS.Path, 
-		},
-	}
-
-	return c.JSON(http.StatusOK, EtcdNFS)
+	return c.NoContent(http.StatusOK)
 }
 
+func handlePull(c echo.Context) error {
+	cid := c.Param("CID")
 
+	fmt.Println(filepath.Join(GearStoragePath, cid))
+
+	_,  err := os.Lstat(filepath.Join(GearStoragePath, cid))
+	if err != nil {
+		logger.Warnf("Fail to lstat file for %v", err)
+	}
+
+	// 返回本地文件
+	// f, err := os.Open(filepath.Join(GearStoragePath, cid))
+	// if err != nil {
+	// 	logger.Fatalf("Fail to open file: %s\n", filepath.Join(GearStoragePath, cid))
+	// }
+	// defer f.Close()
+	// 上共享文件锁
+	// err = syscall.Flock(int(f.Fd()), syscall.LOCK_SH)
+	// if err != nil {
+	// 	logger.Fatal("Fail to lock file in a sharing way...")
+	// }
+	err = c.Attachment(filepath.Join(GearStoragePath, cid), cid)
+	if err != nil {
+		logger.Fatal("Fail to return file...")
+	}
+	// 解锁
+	// err = syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+	// if err != nil {
+	// 	logger.Fatal("Fail to unlock file in a sharing way...")
+	// }
+
+	return nil
+}
 
 
 

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	"github.com/docker/docker/api/types"
+	"github.com/seveirbian/gear/pkg"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/daemon/graphdriver/overlay2"
 	"github.com/sirupsen/logrus"
@@ -99,7 +100,7 @@ func InitBuilder(image string) (*Builder, error) {
 			return nil, err
 		}
 	}
-	regularFilesPath := filepath.Join(gearBuildPath, imageInfo.ID, "files")
+	regularFilesPath := filepath.Join(gearBuildPath, gImageName + ":" + gImageTag, "files")
 	_, err = os.Stat(regularFilesPath)
 	if err != nil {
 		err = os.MkdirAll(regularFilesPath, os.ModePerm)
@@ -108,7 +109,7 @@ func InitBuilder(image string) (*Builder, error) {
 			return nil, err
 		}
 	}
-	irregularFilesPath := filepath.Join(gearBuildPath, imageInfo.ID, "build")
+	irregularFilesPath := filepath.Join(gearBuildPath, gImageName + ":" + gImageTag, "build")
 	_, err = os.Stat(irregularFilesPath)
 	if err != nil {
 		err = os.MkdirAll(irregularFilesPath, os.ModePerm)
@@ -218,6 +219,21 @@ func (b *Builder) tarAndCopy() error {
 	tw := tar.NewWriter(tmpFile)
 	defer tw.Close()
 
+	// 判断是否已经创建了软链接
+	_, err = os.Lstat(filepath.Join(mergedPath, "gear-image"))
+	if err == nil {
+		err := os.Remove(filepath.Join(mergedPath, "gear-image"))
+		if err != nil {
+			logger.Warnf("Fail to remove gear-image symlink for %v", err)
+		}
+	}
+	err = os.Symlink(b.GImageName+":"+b.GImageTag, filepath.Join(mergedPath, "gear-image"))
+	if err != nil {
+		fmt.Println(err)
+		logger.Warn("Fail to create gear-image file...")
+		return err
+	}
+
 	err = filepath.Walk(mergedPath, func(path string, f os.FileInfo, err error) error {
 		// fail to get file info
 		if f == nil {
@@ -228,7 +244,7 @@ func (b *Builder) tarAndCopy() error {
 
 		// get file's relative path
 		var finalPath string
-		pathSlice := strings.SplitAfter(path, "merged")
+		pathSlice := strings.SplitAfter(path, mergedPath)
 		if pathSlice[1] == "" {
 			return nil
 		}
@@ -246,24 +262,55 @@ func (b *Builder) tarAndCopy() error {
 			}
 			defer src.Close()
 
-			dstPath, _ := filepath.Split(finalPath)
-			_, err = os.Stat(filepath.Join(b.RegularFilesPath, dstPath))
+			// dstPath, _ := filepath.Split(finalPath)
+			// _, err = os.Stat(filepath.Join(b.RegularFilesPath, dstPath))
+			// if err != nil {
+			// 	err = os.MkdirAll(filepath.Join(b.RegularFilesPath, dstPath), os.ModePerm)
+			// 	if err != nil {
+			// 		logger.Warnf("Fail to create %s\n", dstPath)
+			// 	}
+			// }
+
+			hashValue := []byte(pkg.HashAFileInMD5(path))
+
+			dst, err := os.Create(filepath.Join(b.RegularFilesPath, string(hashValue)))
 			if err != nil {
-				err = os.MkdirAll(filepath.Join(b.RegularFilesPath, dstPath), os.ModePerm)
-				if err != nil {
-					logger.Warnf("Fail to create %s\n", dstPath)
-				}
-			}
-			dst, err := os.Create(filepath.Join(b.RegularFilesPath, finalPath))
-			if err != nil {
-				logger.WithField("err", err).Warnf("Fail to create file: %s\n", filepath.Join(b.RegularFilesPath, finalPath))
+				logger.WithField("err", err).Warnf("Fail to create file: %s\n", filepath.Join(b.RegularFilesPath, string(hashValue)))
 				return err
 			}
 			defer dst.Close()
 
+			// 修改文件属性
+			err = os.Chmod(filepath.Join(b.RegularFilesPath, string(hashValue)), f.Mode().Perm())
+
+			// 拷贝文件内容
 			_, err = io.Copy(dst, src)
 			if err != nil {
 				logger.Warn("Fail to copy file...")
+				return err
+			}
+
+			// 将普通文件的内容替换成哈希值
+			hd, err := tar.FileInfoHeader(f, target)
+			if err != nil {
+				logger.Warn("Fail to get file head...")
+				return err
+			}
+
+			hd.Name = finalPath
+
+			hd.Size = int64(len(hashValue))
+
+			// write file header info
+			err = tw.WriteHeader(hd)
+			if err != nil {
+				logger.WithField("err", err).Warn("Fail to write header info")
+				return err
+			}
+
+			_, err = tw.Write(hashValue)
+			if err != nil {
+				logger.WithField("err", err).Warn("Fail to write content...")
 				return err
 			}
 
@@ -430,6 +477,7 @@ func (b *Builder) buildGearImage() error {
 
 	// 3. init image build options
 	opts := types.ImageBuildOptions{
+		NoCache: true, 
 		Context: buildTar,
 		Tags:    []string{b.GImageName + ":" + b.GImageTag},
 	}

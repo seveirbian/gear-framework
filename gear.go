@@ -12,10 +12,8 @@ var (
 	GearPath             = "/var/lib/gear/"
 	GearPrivateCachePath = filepath.Join(GearPath, "private")
 	GearPublicCachePath  = filepath.Join(GearPath, "public")
-	GearNFSPath          = filepath.Join(GearPath, "nfs")
 	GearBuildPath        = filepath.Join(GearPath, "build")
-	GearImagesPath       = filepath.Join(GearPath, "images")
-	GearContainersPath   = filepath.Join(GearPath, "containers")
+	GearStoragePath      = filepath.Join(GearPath, "storage")
 )
 
 var (
@@ -47,14 +45,6 @@ func init() {
 			logger.Debugf("Fail to create GearPublicCachePath: %v \n", err)
 		}
 	}
-	// create gear's nfs dir, if not exists, create one
-	_, err = os.Stat(GearNFSPath)
-	if err != nil {
-		err = os.MkdirAll(GearNFSPath, os.ModePerm)
-		if err != nil {
-			logger.Debugf("Fail to create GearNFSPath: %v \n", err)
-		}
-	}
 	// create gear's build dir, if not exists, create one
 	_, err = os.Stat(GearBuildPath)
 	if err != nil {
@@ -63,20 +53,12 @@ func init() {
 			logger.Debugf("Fail to create GearBuildPath: %v \n", err)
 		}
 	}
-	// create gear's images dir, if not exists, create one
-	_, err = os.Stat(GearImagesPath)
+	// create gear's storage dir, if not exists, create one
+	_, err = os.Stat(GearStoragePath)
 	if err != nil {
-		err = os.MkdirAll(GearImagesPath, os.ModePerm)
+		err = os.MkdirAll(GearStoragePath, os.ModePerm)
 		if err != nil {
-			logger.Debugf("Fail to create GearImagesPath: %v \n", err)
-		}
-	}
-	// create gear's contaienrs dir, if not exists, create one
-	_, err = os.Stat(GearContainersPath)
-	if err != nil {
-		err = os.MkdirAll(GearContainersPath, os.ModePerm)
-		if err != nil {
-			logger.Debugf("Fail to create GearContainersPath: %v \n", err)
+			logger.Debugf("Fail to create GearStoragePath: %v \n", err)
 		}
 	}
 }

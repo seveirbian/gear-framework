@@ -5,9 +5,7 @@ import (
     "sync"
     "time"
     "net"
-    "io/ioutil"
     "net/http"
-    "encoding/json"
     "github.com/labstack/echo"
     "github.com/sirupsen/logrus"
     "github.com/seveirbian/gear/pkg"
@@ -28,21 +26,18 @@ type Manager struct {
 
     Echo *echo.Echo
 
-    Etcd types.Etcd
-
-    NFS types.NFS
-
     NodesMu sync.RWMutex
     Nodes map[uint64]types.Node
 }
 
-func Init(config string) (*Manager, error) {
+func Init() (*Manager, error) {
     // 1. create echo instance
     e := echo.New()
 
     // 2. add routes
     e.GET("/nodes", handleNodes)
     e.POST("/join/:IP/:Port", handleJoin)
+    e.POST("/pull/:CID", handlePull)
 
     // 3. get self's IP
     ip := pkg.GetSelfIp()
@@ -50,27 +45,7 @@ func Init(config string) (*Manager, error) {
     // 4. create self ID
     id := pkg.CreateIdFromIP(ip)
 
-    // 5. read config.json
-    configInJson := types.Config{
-        Etcd: types.Etcd{}, 
-        NFS: types.NFS{},
-    }
-
-    data, err := ioutil.ReadFile(config)
-    if err != nil {
-        logger.Fatal("Fail to read config.json...")
-    }
-
-    err = json.Unmarshal(data, &configInJson)
-    if err != nil {
-        logger.Fatal("Fail to Unmarshal config.json...")
-    }
-
-    // 6. get etcd and nfs
-    mgr.Etcd = configInJson.Etcd
-    mgr.NFS = configInJson.NFS
-
-    // 7. fill the manager's fileds
+    // 5. fill the manager's fileds
     mgr.Self = types.Node{
             ID:   id,
             IP:   ip,

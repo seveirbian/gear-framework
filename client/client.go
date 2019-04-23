@@ -1,17 +1,17 @@
 package client
 
 import (
-	"os"
+	// "os"
 	"fmt"
 	"time"
 	"sync"
 	"net/url"
-	"os/exec"
-	"syscall"
+	// "os/exec"
+	// "syscall"
 	"net/http"
-	"os/signal"
+	// "os/signal"
 	"io/ioutil"
-	"encoding/json"
+	// "encoding/json"
 	"github.com/labstack/echo"
 	"github.com/sirupsen/logrus"
 	"github.com/seveirbian/gear/types"
@@ -34,10 +34,6 @@ type Client struct {
 
 	Manager types.Node
 
-	Etcd types.Etcd
-
-	NFS types.NFS
-
 	NodesMu sync.RWMutex
 	Nodes map[uint64]types.Node
 }
@@ -48,9 +44,9 @@ func Init(managerIP string, managerPort string) (*Client, error) {
 
 	// 2. add routes
 	e.GET("/info", handleInfo)
-	e.POST("/get/:IMAGENAME/:TAG", handleGet)
+	e.POST("/get/:CID", handleGet)
 	e.POST("/download/:CID", handleDownload)
-	e.POST("/upload/:IMAGENAME/:TAG", handleUpload)
+	e.POST("/upload/:CID", handleUpload)
 
 	// 3. get self's IP
 	ip := pkg.GetSelfIp()
@@ -83,7 +79,7 @@ func (c *Client) Start() {
 	go updateNodes(c)
 
 	// 挂在nfs目录
-	c.mountNFS()
+	// c.mountNFS()
 
 	c.start()
 }
@@ -113,26 +109,9 @@ func (c *Client) joinCluster() {
 }
 
 func (c *Client) join() error {
-	resp, err := http.PostForm("http://"+c.Manager.IP+":"+c.Manager.Port+"/join/"+c.Self.IP+"/"+c.Self.Port, url.Values{})
-	if err != nil {
-		fmt.Println(err)
-		logger.Fatal("Fail to join the cluster...")
-		return err
-	}
+	_, err := http.PostForm("http://"+c.Manager.IP+":"+c.Manager.Port+"/join/"+c.Self.IP+"/"+c.Self.Port, url.Values{})
 
-	var etcdNFS types.Config
-	err = json.NewDecoder(resp.Body).Decode(&etcdNFS)
-	if err != nil {
-		fmt.Println(err)
-		logger.Fatal("Fail to decode resp...")
-	}
-
-	fmt.Println(etcdNFS)
-
-	c.Etcd = etcdNFS.Etcd
-	c.NFS = etcdNFS.NFS
-
-	return nil
+	return err
 }
 
 func (c *Client) getClusterNodes() ([]types.Node, error) {
@@ -170,36 +149,6 @@ func updateNodes(c *Client) {
 
 		time.Sleep(60*time.Second)
 	}
-}
-
-func (c *Client) mountNFS() {
-	cmd := exec.Command("mount", "-t", "nfs", c.NFS.IP+":"+c.NFS.Path, "/var/lib/gear/nfs/")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println(err)
-		logger.Fatal("Fail to mount nfs...")
-	}
-
-	// 捕获异常退出，并将nfs卸载
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<- sigs
-		fmt.Println("umount nfs...")
-		c := exec.Command("umount", "-t", "nfs", "/var/lib/gear/nfs/")
-
-		err := c.Run()
-		if err != nil {
-			fmt.Println(err)
-			logger.Fatal("Fail to mount nfs...")
-		}
-
-		os.Exit(0)
-	}()
 }
 
 
