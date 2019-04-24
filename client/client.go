@@ -46,7 +46,7 @@ func Init(managerIP string, managerPort string) (*Client, error) {
 	e.GET("/info", handleInfo)
 	e.POST("/get/:CID", handleGet)
 	e.POST("/download/:CID", handleDownload)
-	e.POST("/upload/:CID", handleUpload)
+	e.POST("/upload", handleUpload)
 
 	// 3. get self's IP
 	ip := pkg.GetSelfIp()

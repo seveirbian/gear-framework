@@ -13,6 +13,7 @@ import (
 	// "encoding/json"
 	"path/filepath"
 	"github.com/labstack/echo"
+	"github.com/seveirbian/gear/push"
 	// "github.com/seveirbian/gear/pkg"
 	// "github.com/seveirbian/gear/types"
 )
@@ -148,32 +149,17 @@ func handleGet(c echo.Context) error {
 
 func handleUpload(c echo.Context) error {
 	// 1. get imageName and tag
-	imageName := c.Param("IMAGENAME")
-	tag := c.Param("TAG")
-	// 2. get gear images' path
-	gearImagesPath := "/var/lib/gear/images"
-	imagePath := filepath.Join(gearImagesPath, imageName+":"+tag)
+	dir := c.FormValue("PATH")
+	fmt.Println(dir)
+	
+	pusher, err := push.InitBuilder(dir, cli.Manager.IP, cli.Manager.Port)
+    if err != nil {
+        logger.Fatal("Fail to init a pusher to push gear image...")
+    }
 
-	err := filepath.Walk(imagePath, func(path string, f os.FileInfo, err error) error {
-		// fail to get file info
-		if f == nil {
-			return err
-		}
+    pusher.Push()
 
-		// current file is a regular file
-		if f.Mode().IsRegular() {
-			
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		logger.Fatal("Fail to walk image's dir...")
-	}
-
-	fmt.Printf("Upload %s:%s OK!\n", imageName, tag)
-	return c.NoContent(http.StatusOK)
+    return c.NoContent(http.StatusOK)
 }
 
 

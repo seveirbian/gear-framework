@@ -12,11 +12,15 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+	"net/http"
+	"net/url"
+	"strings"
 	// "time"
 	// "archive/tar"
 	"io/ioutil"
 	// "strconv"
 	"github.com/docker/docker/pkg/ioutils"
+	"github.com/seveirbian/gear/pkg"
 	"github.com/seveirbian/gear/fs"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/chrootarchive"
@@ -24,13 +28,13 @@ import (
 	"github.com/docker/docker/pkg/idtools"
 	"github.com/docker/docker/pkg/locker"
 	"github.com/docker/docker/pkg/mount"
-	// "golang.org/x/sys/unix"
+	"golang.org/x/sys/unix"
 	// rsystem "github.com/opencontainers/runc/libcontainer/system"
 	"github.com/docker/docker/daemon/graphdriver/overlay2"
 	"github.com/docker/docker/daemon/graphdriver"
 	"github.com/docker/docker/pkg/directory"
 	graphPlugin "github.com/docker/go-plugins-helpers/graphdriver"
-	// "github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 )
 
@@ -42,6 +46,7 @@ var (
 	GearBuildPath        = filepath.Join(GearPath, "build")
 	GearImagesPath       = filepath.Join(GearPath, "images")
 	GearContainersPath   = filepath.Join(GearPath, "containers")
+	GearPushPath         = filepath.Join(GearPath, "push")
 )
 
 var (
@@ -50,6 +55,9 @@ var (
 	// ApplyUncompressedLayer defines the unpack method used by the graph
 	// driver
 	ApplyUncompressedLayer = chrootarchive.ApplyUncompressedLayer
+
+	gearCtr = map[string]int{}
+	gearCommit = map[string]int{}
 )
 
 const (
@@ -128,23 +136,23 @@ func (d *Driver) Create(id, parent, mountlabel string, storageOpt map[string]str
 	})
 
 	// 1. 检测parent目录是否是gear-lower文件
-	path := filepath.Join(d.home, parent, "gear-lower")
-	_, err := os.Lstat(path)
-	if err == nil {
-		// 2. 检测gear镜像目录中是否有gear-lower
-		gearLink := filepath.Join(d.home, parent, "gear-lower")
-		target, err := os.Readlink(gearLink)
-		if err != nil {
-			logger.Fatal("No gear-link...")
-		}
+	// path := filepath.Join(d.home, parent, "gear-lower")
+	// _, err := os.Lstat(path)
+	// if err == nil {
+	// 	// 2. 检测gear镜像目录中是否有gear-lower
+	// 	gearLink := filepath.Join(d.home, parent, "gear-lower")
+	// 	target, err := os.Readlink(gearLink)
+	// 	if err != nil {
+	// 		logger.Fatal("No gear-link...")
+	// 	}
 
-		// 3. 在孩子目录中也复制一份gear-link
-		childGearLink := filepath.Join(d.home, id, "gear-lower")
-		err = os.Symlink(target, childGearLink)
-		if err != nil {
-			logger.Warnf("Fail to read link for %v", err)
-		}
-	}
+	// 	// 3. 在孩子目录中也复制一份gear-link
+	// 	childGearLink := filepath.Join(d.home, id, "gear-lower")
+	// 	err = os.Symlink(target, childGearLink)
+	// 	if err != nil {
+	// 		logger.Warnf("Fail to read link for %v", err)
+	// 	}
+	// }
 
 	return 
 }
@@ -237,14 +245,13 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 
 		notify := make(chan int)
 		// 判断是否是第一次挂载
-		files, err := ioutil.ReadDir(gearDiffDir)
-		if err != nil {
-			logger.Warnf("Fail to read dir for %v", err)
-		}
-		if len(files) == 0 {
-			// 第一次
+		if _, ok := gearCtr[gearDiffDir]; !ok {
+			// 第一次挂载
+			gearCtr[gearDiffDir] = 1
 			go gearFS.StartAndNotify(notify)
 			<- notify
+		} else {
+			gearCtr[gearDiffDir] += 1
 		}
 
 		containerFs, err := d.dockerDriver.Get(id, mountLabel)
@@ -271,21 +278,26 @@ func (d *Driver) Put(id string) error {
 		// 2. 有，卸载diff目录
 		gearDiffDir := filepath.Join(gearPath, "diff")
 
-		cmd := exec.Command("umount", gearDiffDir)
-		err := cmd.Run()
-		if err != nil {
-			logger.Warnf("Fail to umount diff for %v", err)
-		}
+		if ctr, _ := gearCtr[gearDiffDir]; ctr <= 1 {
+			delete(gearCtr, gearDiffDir)
 
-		// 3. 强制删除diff目录
-		err = os.RemoveAll(gearDiffDir)
-		if err != nil {
-			logger.Warnf("Fail to remove diff dir for %v", err)
-		}
-		// 4. 新建diff目录
-		err = os.MkdirAll(gearDiffDir, 0700)
-		if err != nil {
-			logger.Warnf("Fail to create diff dir for %v", err)
+			cmd := exec.Command("umount", gearDiffDir)
+			err := cmd.Run()
+			if err != nil {
+				logger.Warnf("Fail to umount diff for %v", err)
+			}
+			// 3. 强制删除diff目录
+			err = os.RemoveAll(gearDiffDir)
+			if err != nil {
+				logger.Warnf("Fail to remove diff dir for %v", err)
+			}
+			// 4. 新建diff目录
+			err = os.MkdirAll(gearDiffDir, 0700)
+			if err != nil {
+				logger.Warnf("Fail to create diff dir for %v", err)
+			}
+		} else {
+			gearCtr[gearDiffDir] -= 1
 		}
 
 		return nil
@@ -351,26 +363,118 @@ func (d *Driver) Diff(id, parent string) io.ReadCloser {
 		}
 		return diff
 	} else {
-		// 是gear镜像，由于Get已经挂载了一次，这里就不再挂载了
-		layerRootFs, err := d.dockerDriver.Get(id, "")
+		// 是gear镜像
+		// 1. 将该层目录下的文件构建成gear镜像的目录树，即：将普通文件内容替换成内容的哈希值，内容以哈希值
+		// 命名上传到remote storage
+		currentDir := filepath.Join(d.home, id, "diff")
+		pushDir := filepath.Join(GearPushPath, id)
+		err := os.MkdirAll(pushDir, os.ModePerm)
 		if err != nil {
-			return nil
+			logger.Warnf("Fail to make push dir for %v", err)
 		}
-		layerFs := layerRootFs.Path()
 
-		defer func() {
-			if err != nil {
-				d.Put(id)
+		err = filepath.Walk(currentDir, func(path string, f os.FileInfo, err error) error {
+			if f == nil {
+	    		return err
+	    	}
+
+	    	// 防止本目录也处理了
+			pathSlice := strings.SplitAfter(path, currentDir)
+			if pathSlice[1] == "" {
+				return nil
 			}
-		}()
+
+			if f.Mode().IsRegular() {
+				hashValue := []byte(pkg.HashAFileInMD5(path))
+
+				src, err := os.Open(path)
+				if err != nil {
+					logger.Warnf("Fail to open file: %s\n", path)
+					return err
+				}
+				defer src.Close()
+
+				dst, err := os.Create(filepath.Join(pushDir, string(hashValue)))
+				if err != nil {
+					logger.Warnf("Fail to create file: %s\n", filepath.Join(pushDir, string(hashValue)))
+					return err
+				}
+				defer dst.Close()
+
+				// 拷贝文件内容
+				_, err = io.Copy(dst, src)
+				if err != nil {
+					logger.Warn("Fail to copy file...")
+					return err
+				}
+
+				err = ioutil.WriteFile(path, hashValue, f.Mode().Perm())
+				if err != nil {
+					logger.Warnf("Fail to write file for %v", err)
+				}
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			logger.Warnf("Fail to walk id dir for %v", err)
+		}
+
+		resp, err := http.PostForm("http://localhost:2020/upload", url.Values{"PATH": {pushDir}})
+		if err != nil {
+			logger.Warnf("Fail to post for %v", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			logger.Warnf("Fail to push files...")
+		}
+
+		err = os.RemoveAll(pushDir)
+		if err != nil {
+			logger.Warnf("Fail to remove push dir for %v", err)
+		}
+
+		// 2. 联合挂载，对上下层目录树做Diff
+		parent, err := os.Readlink(filepath.Join(d.home, id, "gear-lower"))
+		if err != nil {
+			logger.Warnf("Fail to readlink for %v", err)
+		}
+		parentDir := filepath.Join(parent, "gear-diff")
+		opts := "lowerdir=" + parentDir + ",upperdir=" + currentDir + ",workdir=" + filepath.Join(d.home, id, "work")
+		mountData := label.FormatMountLabel(opts, "")
+		mount := unix.Mount
+		mergedDir := filepath.Join(d.home, id, "merged")
+		mountTarget := mergedDir
+		rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
+		if err != nil {
+			logger.Fatalf("Fail to get rootUIDGID for %v", err)
+		}
+		if err := idtools.MkdirAndChown(mergedDir, 0700, idtools.Identity{UID: rootUID, GID: rootGID}); err != nil {
+			logger.Fatalf("Fail to mk merged dir for %v", err)
+		}
+		if err := mount("overlay", mountTarget, "overlay", 0, mountData); err != nil {
+			logger.Fatalf("Fail to mount overlay for %v", err)
+		}
+		if err := os.Chown(filepath.Join(filepath.Join(d.home, id, "work"), "work"), rootUID, rootGID); err != nil {
+			logger.Fatalf("Fail to get chown for %v", err)
+		}
+
+		layerFs := mountTarget
 
 		archive, err := archive.Tar(layerFs, archive.Uncompressed)
 		if err != nil {
-			return nil
+			logger.Fatalf("Fail to get tar for %v", err)
 		}
 		return ioutils.NewReadCloserWrapper(archive, func() error {
 			err := archive.Close()
-			d.Put(id)
+			if err := unix.Unmount(mountTarget, unix.MNT_DETACH); err != nil {
+				logger.Debugf("Failed to unmount %s overlay: %s - %v", id, mountTarget, err)
+			}
+			if err := unix.Rmdir(mountTarget); err != nil && !os.IsNotExist(err) {
+				logger.Debugf("Failed to remove %s overlay: %v", id, err)
+			}
 			return err
 		})
 	}
@@ -433,15 +537,16 @@ func (d *Driver) ApplyDiff(id, parent string, diff io.Reader) (int64, error) {
 	path := filepath.Join(d.home, id, "diff", "gear-image")
 	_, err = os.Lstat(path)
 
-	// 判断是不是gear镜像
+	// 判断gear镜像
 	if err != nil {
+		// 不是gear镜像
 		// 5. 删除tmp文件
 		err = os.Remove(tmpFilePath)
 		if err != nil {
 			logger.Warnf("Fail to remove tmp file for %v", err)
 		}
 
-		// 不是gear镜像就直接返回
+		// 直接返回
 		return size, nil
 	} else {
 		// 是gear镜像，就清空diff文件夹，并创建gear-diff文件夹，将tmpFile内容解压到gear-diff文件夹中

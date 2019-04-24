@@ -14,6 +14,7 @@ var (
 	GearPublicCachePath  = filepath.Join(GearPath, "public")
 	GearBuildPath        = filepath.Join(GearPath, "build")
 	GearStoragePath      = filepath.Join(GearPath, "storage")
+	GearPushPath         = filepath.Join(GearPath, "push")
 )
 
 var (
@@ -59,6 +60,14 @@ func init() {
 		err = os.MkdirAll(GearStoragePath, os.ModePerm)
 		if err != nil {
 			logger.Debugf("Fail to create GearStoragePath: %v \n", err)
+		}
+	}
+	// create gear's push dir, if not exists, create one
+	_, err = os.Stat(GearPushPath)
+	if err != nil {
+		err = os.MkdirAll(GearPushPath, os.ModePerm)
+		if err != nil {
+			logger.Debugf("Fail to create GearPushPath: %v \n", err)
 		}
 	}
 }

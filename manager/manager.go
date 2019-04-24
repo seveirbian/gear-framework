@@ -38,6 +38,8 @@ func Init() (*Manager, error) {
     e.GET("/nodes", handleNodes)
     e.POST("/join/:IP/:Port", handleJoin)
     e.POST("/pull/:CID", handlePull)
+    e.POST("/query/:CID", handleQuery)
+    e.POST("/push/:CID", handlePush)
 
     // 3. get self's IP
     ip := pkg.GetSelfIp()
