@@ -135,25 +135,6 @@ func (d *Driver) Create(id, parent, mountlabel string, storageOpt map[string]str
 		StorageOpt:storageOpt, 
 	})
 
-	// 1. 检测parent目录是否是gear-lower文件
-	// path := filepath.Join(d.home, parent, "gear-lower")
-	// _, err := os.Lstat(path)
-	// if err == nil {
-	// 	// 2. 检测gear镜像目录中是否有gear-lower
-	// 	gearLink := filepath.Join(d.home, parent, "gear-lower")
-	// 	target, err := os.Readlink(gearLink)
-	// 	if err != nil {
-	// 		logger.Fatal("No gear-link...")
-	// 	}
-
-	// 	// 3. 在孩子目录中也复制一份gear-link
-	// 	childGearLink := filepath.Join(d.home, id, "gear-lower")
-	// 	err = os.Symlink(target, childGearLink)
-	// 	if err != nil {
-	// 		logger.Warnf("Fail to read link for %v", err)
-	// 	}
-	// }
-
 	return 
 }
 
@@ -215,48 +196,60 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 
 		return containerFs, err
 	} else {
-		// 2. 有，需要gear fs目录的挂载
-		gearDiffDir := filepath.Join(gearPath, "diff")
-		gearGearDir := filepath.Join(gearPath, "gear-diff")
-
-		// 3. 查找gear-diff目录下，gear-image软链接的镜像名和tag
-		gearImage, err := os.Readlink(filepath.Join(gearGearDir, "gear-image"))
+		// 检测该目录下是否有lower文件
+		_, err := os.Lstat(filepath.Join(d.home, id, "lower"))
 		if err != nil {
-			logger.Warnf("Fail to read gear-image symlink for %v", err)
-		}
-
-		// 4. 获取镜像自己的私有cache
-		gearImagePrivateCache := filepath.Join(GearPrivateCachePath, gearImage)
-		_, err = os.Lstat(gearImagePrivateCache)
-		if err != nil {
-			// 创建一个
-			err := os.MkdirAll(gearImagePrivateCache, 0700)
-			if err != nil {
-				logger.Warnf("Fail to create image private cache dir for %v", err)
-			}
-		}
-
-		// 5. 将/gear目录使用gear fs挂载到/diff目录下
-		gearFS := &fs.GearFS {
-			MountPoint: gearDiffDir, 
-			IndexImagePath: gearGearDir, 
-			PrivateCachePath: gearImagePrivateCache, 
-		}
-
-		notify := make(chan int)
-		// 判断是否是第一次挂载
-		if _, ok := gearCtr[gearDiffDir]; !ok {
-			// 第一次挂载
-			gearCtr[gearDiffDir] = 1
-			go gearFS.StartAndNotify(notify)
-			<- notify
+			// 有gear-lower但没有lower的是gear镜像
+			// 当前目录是gear镜像目录，不需要gear fs的帮助
+			// 直接将gear-diff目录返回？？？
+			gearDiffDir := filepath.Join(d.home, id, "gear-diff")
+			return containerfs.NewLocalContainerFS(gearDiffDir), nil
 		} else {
-			gearCtr[gearDiffDir] += 1
+			// 既有gear-lower也有lower的是gear容器目录
+			// 当前目录是gear容器目录，需要gear fs的挂载
+			// 2. 有，需要gear fs目录的挂载
+			gearDiffDir := filepath.Join(gearPath, "diff")
+			gearGearDir := filepath.Join(gearPath, "gear-diff")
+
+			// 3. 查找gear-diff目录下，gear-image软链接的镜像名和tag
+			gearImage, err := os.Readlink(filepath.Join(gearGearDir, "gear-image"))
+			if err != nil {
+				logger.Warnf("Fail to read gear-image symlink for %v", err)
+			}
+
+			// 4. 获取镜像自己的私有cache
+			gearImagePrivateCache := filepath.Join(GearPrivateCachePath, gearImage)
+			_, err = os.Lstat(gearImagePrivateCache)
+			if err != nil {
+				// 创建一个
+				err := os.MkdirAll(gearImagePrivateCache, 0700)
+				if err != nil {
+					logger.Warnf("Fail to create image private cache dir for %v", err)
+				}
+			}
+
+			// 5. 将/gear目录使用gear fs挂载到/diff目录下
+			gearFS := &fs.GearFS {
+				MountPoint: gearDiffDir, 
+				IndexImagePath: gearGearDir, 
+				PrivateCachePath: gearImagePrivateCache, 
+			}
+
+			notify := make(chan int)
+			// 判断是否是第一次挂载
+			if _, ok := gearCtr[gearDiffDir]; !ok {
+				// 第一次挂载
+				gearCtr[gearDiffDir] = 1
+				go gearFS.StartAndNotify(notify)
+				<- notify
+			} else {
+				gearCtr[gearDiffDir] += 1
+			}
+
+			containerFs, err := d.dockerDriver.Get(id, mountLabel)
+
+			return containerFs, err
 		}
-
-		containerFs, err := d.dockerDriver.Get(id, mountLabel)
-
-		return containerFs, err
 	}
 }
 
