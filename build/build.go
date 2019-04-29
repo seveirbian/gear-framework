@@ -32,6 +32,7 @@ type DockerFile struct {
 	ENTRYPOINT []string
 	VOLUME     map[string]struct{}
 	WORKDIR    string
+	USER       string
 	CMD        []string
 }
 
@@ -359,6 +360,7 @@ func (b *Builder) createDocekrfile() error {
 	b.Dockerfile.LABEL = b.DImageInfo.Config.Labels
 	b.Dockerfile.VOLUME = b.DImageInfo.Config.Volumes
 	b.Dockerfile.WORKDIR = b.DImageInfo.Config.WorkingDir
+	b.Dockerfile.USER = b.DImageInfo.Config.User
 
 	b.Dockerfile.EXPOSE = map[string]struct{}{}
 	exposedPorts := b.DImageInfo.Config.ExposedPorts
@@ -427,6 +429,12 @@ func (b *Builder) createDocekrfile() error {
 	dockerfile = dockerfile + "ADD "
 	dockerfile = dockerfile + "tmp.tar /"
 	dockerfile = dockerfile + "\n"
+
+	if b.Dockerfile.USER != "" {
+		dockerfile = dockerfile + "USER "
+		dockerfile = dockerfile + b.Dockerfile.USER
+		dockerfile = dockerfile + "\n"
+	}
 
 	if len(b.Dockerfile.CMD) != 0 {
 		dockerfile = dockerfile + "CMD ["

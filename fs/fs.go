@@ -5,6 +5,7 @@ import (
 	// "io"
 	"fmt"
 	"errors"
+	// "reflect"
 	"syscall"
 	"net/url"
 	"net/http"
@@ -235,8 +236,15 @@ func (d *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	for _, file := range files {
 		var de fuse.Dirent
 		de.Name = file.Name()
-		if file.IsDir() {
-			de.Type = fuse.DT_Dir
+		switch file.Mode() {
+		case os.ModeDir: de.Type = fuse.DT_Dir
+		case os.ModeSymlink: de.Type = fuse.DT_Link
+		case os.ModeNamedPipe: de.Type = fuse.DT_FIFO
+		case os.ModeSocket: de.Type = fuse.DT_Socket
+		case os.ModeDevice: de.Type = fuse.DT_Block
+		case os.ModeCharDevice: de.Type = fuse.DT_Char
+		// case os.ModeIrregular: de.Type = DT_Unknown
+		default: de.Type = fuse.DT_File
 		}
 		res = append(res, de)
 	}
@@ -328,6 +336,19 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 			if err != nil {
 				logger.Warnf("Fail to get file for %v", err)
 			}
+			// 修改文件的权限
+			IndexFileInfo, err := os.Lstat(f.filePath)
+			if err != nil {
+				logger.Warnf("Fail to get index file info for %v", err)
+			}
+			err = os.Chmod(filepath.Join(f.privateCachePath, f.privateCahceName), IndexFileInfo.Mode())
+			if err != nil {
+				logger.Warnf("Fail to chmod for %v", err)
+			}
+			err = os.Chown(filepath.Join(f.privateCachePath, f.privateCahceName), int(IndexFileInfo.Sys().(*syscall.Stat_t).Uid), int(IndexFileInfo.Sys().(*syscall.Stat_t).Gid))
+			if err != nil {
+				logger.Warnf("Fail to chown for %v", err)
+			}
 		}
 
 		fInfo, err := os.Lstat(filepath.Join(f.privateCachePath, f.privateCahceName))
@@ -336,24 +357,40 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 		}
 
 		attr.Size = uint64(fInfo.Size())
-		attr.Mode = fInfo.Mode()
-		attr.Mtime = fInfo.ModTime()
+
+		IndexFileInfo, err := os.Lstat(f.filePath)
+		if err != nil {
+			logger.Warnf("Fail to get index file info for %v", err)
+		}
+
+		attr.Mode = IndexFileInfo.Mode()
+		attr.Mtime = IndexFileInfo.ModTime()
+		attr.Uid = IndexFileInfo.Sys().(*syscall.Stat_t).Uid
+		attr.Gid = IndexFileInfo.Sys().(*syscall.Stat_t).Gid
 	} else {
-		fInfo, err := os.Lstat(f.filePath)
+		IndexFileInfo, err := os.Lstat(f.filePath)
 		if err != nil {
 			logger.Warnf("Cannot stat file: %v", err)
 		}
 
-		attr.Size = uint64(fInfo.Size())
-		attr.Mode = fInfo.Mode()
-		attr.Mtime = fInfo.ModTime()
+		attr.Size = uint64(IndexFileInfo.Size())
+		attr.Mode = IndexFileInfo.Mode()
+		attr.Mtime = IndexFileInfo.ModTime()
+		attr.Uid = IndexFileInfo.Sys().(*syscall.Stat_t).Uid
+		attr.Gid = IndexFileInfo.Sys().(*syscall.Stat_t).Gid
 	}
 
+	fmt.Println(attr)
+	return nil
+}
+
+func (f *File) Access(ctx context.Context, req *fuse.AccessRequest) error {
 	return nil
 }
 
 func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
 	fmt.Println("f.Open()")
+	fmt.Println(f)
 
 	var fileHandler = FileHandler{}
 
@@ -365,6 +402,19 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 			_, err := http.PostForm("http://localhost:2020"+"/get/"+f.privateCahceName, url.Values{"PATH":{f.privateCachePath}, "PERM":{"0777"}})
 			if err != nil {
 				logger.Warnf("Fail to get file for %v", err)
+			}
+			// 修改文件的权限
+			IndexFileInfo, err := os.Lstat(f.filePath)
+			if err != nil {
+				logger.Warnf("Fail to get index file info for %v", err)
+			}
+			err = os.Chmod(filepath.Join(f.privateCachePath, f.privateCahceName), IndexFileInfo.Mode())
+			if err != nil {
+				logger.Warnf("Fail to chmod for %v", err)
+			}
+			err = os.Chown(filepath.Join(f.privateCachePath, f.privateCahceName), int(IndexFileInfo.Sys().(*syscall.Stat_t).Uid), int(IndexFileInfo.Sys().(*syscall.Stat_t).Gid))
+			if err != nil {
+				logger.Warnf("Fail to chown for %v", err)
 			}
 		}
 
@@ -390,6 +440,8 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 
 func (f *File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
 	fmt.Println("f.Readlink()")
+	fmt.Println(f)
+
 	target, err := os.Readlink(f.filePath)
 	if err != nil {
 		logger.Warnf("Fail to read link for %v", err)
@@ -408,11 +460,15 @@ type FileHandler struct {
 
 func (fh *FileHandler) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
 	fmt.Println("fh.Release()")
+	fmt.Println(fh)
+
 	return fh.f.Close()
 }
 
 func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 	fmt.Println("fh.Read()")
+	fmt.Println(fh)
+
 	buf := make([]byte, req.Size)
 	n, err := fh.f.Read(buf)
 	resp.Data = buf[:n]
@@ -422,10 +478,18 @@ func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fu
 
 func (fh *FileHandler) ReadAll(ctx context.Context) ([]byte, error) {
 	fmt.Println("fh.ReadAll()")
+	fmt.Println(fh)
 
 	data, err := ioutil.ReadAll(fh.f)
 
 	return data, err
+}
+
+func (fh *FileHandler) Flush(ctx context.Context, req *fuse.FlushRequest) error {
+	fmt.Println("fh.Flush()")
+	fmt.Println(fh)
+
+	return nil
 }
 
 // func (fh *FileHandler) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
