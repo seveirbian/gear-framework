@@ -233,6 +233,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 				MountPoint: gearDiffDir, 
 				IndexImagePath: gearGearDir, 
 				PrivateCachePath: gearImagePrivateCache, 
+				UpperPath: filepath.Join(d.home, id, "diff"), 
 			}
 
 			notify := make(chan int)

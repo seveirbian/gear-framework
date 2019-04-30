@@ -4,7 +4,8 @@ import (
 	"os"
 	// "io"
 	"fmt"
-	"errors"
+	// "time"
+	// "errors"
 	// "reflect"
 	"syscall"
 	"net/url"
@@ -26,8 +27,10 @@ var (
 
 type GearFS struct {
 	MountPoint string
+
 	IndexImagePath string
 	PrivateCachePath string
+	UpperPath string
 }
 
 func (g * GearFS) Start() {
@@ -40,13 +43,17 @@ func (g * GearFS) Start() {
 	if err != nil {
 		logrus.Fatalf("privateCachePath: %s is not valid...", g.PrivateCachePath)
 	}
+	upperPath, err := ValidatePath(g.UpperPath)
+	if err != nil {
+		logrus.Fatalf("upperPath: %s is not valid...", g.UpperPath)
+	}
 	mountPoint, err := ValidatePath(g.MountPoint)
 	if err != nil {
 		logrus.Fatalf("mountPoint: %s is not valid...", g.MountPoint)
 	}
 
 	// 2. 在挂载点创建fuse连接
-	c, err := fuse.Mount(mountPoint)
+	c, err := fuse.Mount(mountPoint, fuse.AllowOther())
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -72,7 +79,7 @@ func (g * GearFS) Start() {
 	}(c)
 
 	// 4. 初始化fuse文件系统
-	filesys := Init(indexImagePath, privateCachePath)
+	filesys := Init(indexImagePath, privateCachePath, upperPath)
 
 	// 5. 使用fuse文件系统服务挂载点的fuse连接
 	if err := fuseFS.Serve(c, filesys); err != nil {
@@ -95,13 +102,17 @@ func (g * GearFS) StartAndNotify(notify chan int) {
 	if err != nil {
 		logrus.Fatalf("privateCachePath: %s is not valid...", g.PrivateCachePath)
 	}
+	upperPath, err := ValidatePath(g.UpperPath)
+	if err != nil {
+		logrus.Fatalf("upperPath: %s is not valid...", g.UpperPath)
+	}
 	mountPoint, err := ValidatePath(g.MountPoint)
 	if err != nil {
 		logrus.Fatalf("mountPoint: %s is not valid...", g.MountPoint)
 	}
 
 	// 2. 在挂载点创建fuse连接
-	c, err := fuse.Mount(mountPoint)
+	c, err := fuse.Mount(mountPoint, fuse.AllowOther())
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -127,7 +138,7 @@ func (g * GearFS) StartAndNotify(notify chan int) {
 	}(c)
 
 	// 4. 初始化fuse文件系统
-	filesys := Init(indexImagePath, privateCachePath)
+	filesys := Init(indexImagePath, privateCachePath, upperPath)
 
 	// 5. 使用fuse文件系统服务挂载点的fuse连接
 	notify <- 1
@@ -141,92 +152,70 @@ func (g * GearFS) StartAndNotify(notify chan int) {
 	}
 }
 
-func Init(indexImagePath, privateCachePath string) *FS {
+func Init(indexImagePath, privateCachePath, upperPath string) *FS {
 	return &FS{
 		IndexImagePath: indexImagePath,
 		PrivateCachePath: privateCachePath, 
+		UpperPath: upperPath, 
 	}
 }
 
 type FS struct {
 	IndexImagePath string
 	PrivateCachePath string
+	UpperPath string
 }
 
 func (f *FS) Root() (fs.Node, error) {
-	fmt.Println("Root")
 	n := &Dir {
 		// isRoot: true, 
-		dirPath: f.IndexImagePath, 
+		indexImagePath: f.IndexImagePath, 
 		privateCachePath: f.PrivateCachePath, 
+		upperPath: f.UpperPath, 
+
+		relativePath: "/", 
 	}
 
 	return n, nil
 }
 
 type Dir struct {
-	// isRoot bool
-	// rootPath string
-
-	// isDir bool
-	dirPath string
+	indexImagePath string
 	privateCachePath string
+	upperPath string
+
+	relativePath string
 }
 
 // TODO: 实际获取每个目录的属性
 func (d *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
-	fmt.Println("dir.Attr()")
-	attr.Mode = os.ModeDir | 0755
+	dirInfo, err := os.Lstat(filepath.Join(d.indexImagePath, d.relativePath))
+	if err != nil {
+		logger.Warnf("Fail to lstat dir.attr for %v", err)
+	}
+
+	attr.Inode = dirInfo.Sys().(*syscall.Stat_t).Ino
+	attr.Size = uint64(dirInfo.Size())
+	attr.Blocks = uint64(dirInfo.Sys().(*syscall.Stat_t).Blocks)
+	attr.Mtime = dirInfo.ModTime()
+	attr.Mode = dirInfo.Mode()
+	attr.Nlink = uint32(dirInfo.Sys().(*syscall.Stat_t).Nlink)
+	attr.Uid = dirInfo.Sys().(*syscall.Stat_t).Uid
+	attr.Gid = dirInfo.Sys().(*syscall.Stat_t).Gid
+	attr.BlockSize = uint32(dirInfo.Sys().(*syscall.Stat_t).Blksize)
+
+	fmt.Println("\nd.Getattr")
+	fmt.Println("d< ", d.relativePath, " >")
+	fmt.Println("d.Attr< ", attr, " >")
 
 	return nil
 }
 
-func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.LookupResponse) (fs.Node, error) {
-	fmt.Println("dir.Lookup()")
-	path := req.Name
-
-	path = d.dirPath + path
-
-	fInfo, err := os.Lstat(path)
-	if err != nil {
-		logger.Warnf("Fail to Lstat path %s : %v", path, err)
-		return nil, fuse.ENOENT
-	}
-
-	if fInfo.IsDir() {
-		child := &Dir {
-			// isDir: true, 
-			dirPath: path+"/", 
-			privateCachePath: d.privateCachePath, 
-		}
-		return child, nil
-	} else {
-		if fInfo.Mode().IsRegular() {
-			child := &File {
-				isRegular: true, 
-				filePath: path, 
-				privateCachePath: d.privateCachePath, 
-			}
-			return child, nil
-		} else {
-			child := &File {
-				isRegular: false, 
-				filePath: path, 
-				privateCachePath: d.privateCachePath, 
-			}
-			return child, nil
-		}
-	}
-
-	return nil, fuse.ENOENT
-}
-
 func (d *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	fmt.Println("dir.ReadDirAll()")
 	var res []fuse.Dirent
 	var path string
 
-	path = d.dirPath
+	path = filepath.Join(d.indexImagePath, d.relativePath)
 
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -252,135 +241,156 @@ func (d *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	return res, nil
 }
 
-// used for mkdir
-func (d *Dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
-	fmt.Println("d.Mkdir")
-	fmt.Println(req)
-	path := req.Name
+func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.LookupResponse) (fs.Node, error) {
+	target := filepath.Join(d.indexImagePath, d.relativePath, req.Name)
 
-	path = d.dirPath + path
-
-	mode := req.Mode
-	umask := req.Umask
-
-	_, err := os.Lstat(path)
+	fInfo, err := os.Lstat(target)
 	if err != nil {
-		err := os.Mkdir(path, (umask^mode))
-		if err != nil {
-			return nil, errors.New(fmt.Sprintf("Fail to create directory '%s'", path))
-		}
-		return &Dir {
-			dirPath: path+"/", 
+		logger.Warnf("Fail to Lstat target %s : %v", target, err)
+		return nil, fuse.ENOENT
+	}
+
+	if fInfo.IsDir() {
+		child := &Dir { 
+			indexImagePath: d.indexImagePath, 
 			privateCachePath: d.privateCachePath, 
-		}, nil
+			upperPath: d.upperPath, 
+			relativePath: filepath.Join(d.relativePath, req.Name), 
+		}
+		return child, nil
+	} else {
+		if fInfo.Mode().IsRegular() {
+			child := &File {
+				isRegular: true, 
+				indexImagePath: d.indexImagePath, 
+				privateCachePath: d.privateCachePath, 
+				upperPath: d.upperPath, 
+				relativePath: filepath.Join(d.relativePath, req.Name), 
+			}
+			return child, nil
+		} else {
+			child := &File {
+				isRegular: false, 
+				indexImagePath: d.indexImagePath, 
+				privateCachePath: d.privateCachePath, 
+				upperPath: d.upperPath, 
+				relativePath: filepath.Join(d.relativePath, req.Name), 
+			}
+			return child, nil
+		}
 	}
 
-	return nil, errors.New(fmt.Sprintf("cannot create directory '%s': File exists", path))
+	return nil, fuse.ENOENT
 }
 
-// used for rmdir/rm
-func (d *Dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
-	fmt.Println("d.Remove")
-	path := req.Name
-
-	path = d.dirPath + path
-
-	err := os.Remove(path)
-	
-	return err
-}
-
-func (d *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
-	fmt.Println("dir.Create")
-	path := req.Name
-	path = d.dirPath + path
-
-	_, err := os.Create(path)
-	if err != nil {
-		return nil, nil, nil
-	}
-
-	child := &File {
-		isRegular: true, 
-		filePath: path, 
-		privateCachePath: d.privateCachePath, 
-	}
-
-	return child, child, nil
+func (d *Dir) Access(ctx context.Context, req *fuse.AccessRequest) error {
+	return nil
 }
 
 type File struct {
 	isRegular bool
-	filePath string
 
-	privateCahceName string
+	indexImagePath string
 	privateCachePath string
+	upperPath string
+
+	relativePath string
+
+	privateCacheName string
 }
 
 func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
-	fmt.Println("f.Attr()")
-	fmt.Println(f)
+	// 首先查看上层目录是否已经存在该文件
+	upperFileInfo, err := os.Lstat(filepath.Join(f.upperPath, f.relativePath))
+	if err == nil {
+		// 是的话就返回upper目录的文件信息
+		attr.Inode = upperFileInfo.Sys().(*syscall.Stat_t).Ino
+		attr.Size = uint64(upperFileInfo.Size())
+		attr.Blocks = uint64(upperFileInfo.Sys().(*syscall.Stat_t).Blocks)
+		attr.Mtime = upperFileInfo.ModTime()
+		attr.Mode = upperFileInfo.Mode()
+		attr.Nlink = uint32(upperFileInfo.Sys().(*syscall.Stat_t).Nlink)
+		attr.Uid = upperFileInfo.Sys().(*syscall.Stat_t).Uid
+		attr.Gid = upperFileInfo.Sys().(*syscall.Stat_t).Gid
+		attr.BlockSize = uint32(upperFileInfo.Sys().(*syscall.Stat_t).Blksize)
+		fmt.Println("\nf.Getattr")
+		fmt.Println("f< ", f.relativePath, " >")
+		fmt.Print("f.attr< ", attr, ">\n")
+		return nil
+	}
 
+	// 否则，再判断是否是普通文件，是否需要下载等等
 	if f.isRegular {
 		// 获取文件的cid
-		name, err := ioutil.ReadFile(f.filePath)
+		name, err := ioutil.ReadFile(filepath.Join(f.indexImagePath, f.relativePath))
 		if err != nil {
 			logger.Warnf("Fail to read filename")
 		}
-		f.privateCahceName = string(name)
+		f.privateCacheName = string(name)
 
 		// 检测private cache中是否存在该文件
-		_, err = os.Lstat(filepath.Join(f.privateCachePath, f.privateCahceName))
+		_, err = os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 		if err != nil {
-			_, err := http.PostForm("http://localhost:2020"+"/get/"+f.privateCahceName, url.Values{"PATH":{f.privateCachePath}, "PERM":{"0777"}})
+			_, err := http.PostForm("http://localhost:2020"+"/get/"+f.privateCacheName, url.Values{"PATH":{f.privateCachePath}, "PERM":{"0777"}})
 			if err != nil {
 				logger.Warnf("Fail to get file for %v", err)
 			}
 			// 修改文件的权限
-			IndexFileInfo, err := os.Lstat(f.filePath)
+			IndexFileInfo, err := os.Lstat(filepath.Join(f.indexImagePath, f.relativePath))
 			if err != nil {
 				logger.Warnf("Fail to get index file info for %v", err)
 			}
-			err = os.Chmod(filepath.Join(f.privateCachePath, f.privateCahceName), IndexFileInfo.Mode())
+			err = os.Chmod(filepath.Join(f.privateCachePath, f.privateCacheName), IndexFileInfo.Mode())
 			if err != nil {
 				logger.Warnf("Fail to chmod for %v", err)
 			}
-			err = os.Chown(filepath.Join(f.privateCachePath, f.privateCahceName), int(IndexFileInfo.Sys().(*syscall.Stat_t).Uid), int(IndexFileInfo.Sys().(*syscall.Stat_t).Gid))
+			err = os.Chown(filepath.Join(f.privateCachePath, f.privateCacheName), int(IndexFileInfo.Sys().(*syscall.Stat_t).Uid), int(IndexFileInfo.Sys().(*syscall.Stat_t).Gid))
 			if err != nil {
 				logger.Warnf("Fail to chown for %v", err)
 			}
 		}
 
-		fInfo, err := os.Lstat(filepath.Join(f.privateCachePath, f.privateCahceName))
+		fInfo, err := os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 		if err != nil {
 			logger.Warnf("Fail to lstat file for %v", err)
 		}
 
 		attr.Size = uint64(fInfo.Size())
 
-		IndexFileInfo, err := os.Lstat(f.filePath)
+		IndexFileInfo, err := os.Lstat(filepath.Join(f.indexImagePath, f.relativePath))
 		if err != nil {
 			logger.Warnf("Fail to get index file info for %v", err)
 		}
 
-		attr.Mode = IndexFileInfo.Mode()
+		attr.Inode = IndexFileInfo.Sys().(*syscall.Stat_t).Ino
+		attr.Blocks = uint64(IndexFileInfo.Sys().(*syscall.Stat_t).Blocks)
 		attr.Mtime = IndexFileInfo.ModTime()
+		attr.Mode = IndexFileInfo.Mode()
+		attr.Nlink = uint32(IndexFileInfo.Sys().(*syscall.Stat_t).Nlink)
 		attr.Uid = IndexFileInfo.Sys().(*syscall.Stat_t).Uid
 		attr.Gid = IndexFileInfo.Sys().(*syscall.Stat_t).Gid
+		attr.BlockSize = uint32(IndexFileInfo.Sys().(*syscall.Stat_t).Blksize)
 	} else {
-		IndexFileInfo, err := os.Lstat(f.filePath)
+		IndexFileInfo, err := os.Lstat(filepath.Join(f.indexImagePath, f.relativePath))
 		if err != nil {
 			logger.Warnf("Cannot stat file: %v", err)
 		}
 
+		attr.Inode = IndexFileInfo.Sys().(*syscall.Stat_t).Ino
 		attr.Size = uint64(IndexFileInfo.Size())
-		attr.Mode = IndexFileInfo.Mode()
+		attr.Blocks = uint64(IndexFileInfo.Sys().(*syscall.Stat_t).Blocks)
 		attr.Mtime = IndexFileInfo.ModTime()
+		attr.Mode = IndexFileInfo.Mode()
+		attr.Nlink = uint32(IndexFileInfo.Sys().(*syscall.Stat_t).Nlink)
 		attr.Uid = IndexFileInfo.Sys().(*syscall.Stat_t).Uid
 		attr.Gid = IndexFileInfo.Sys().(*syscall.Stat_t).Gid
+		attr.BlockSize = uint32(IndexFileInfo.Sys().(*syscall.Stat_t).Blksize)
 	}
 
-	fmt.Println(attr)
+	fmt.Println("\nf.Attr")
+	fmt.Println("f< ", f.relativePath, " >")
+	fmt.Println("f.Attr< ", attr, " >")
+
 	return nil
 }
 
@@ -389,37 +399,14 @@ func (f *File) Access(ctx context.Context, req *fuse.AccessRequest) error {
 }
 
 func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
-	fmt.Println("f.Open()")
-	fmt.Println(f)
 
 	var fileHandler = FileHandler{}
 
-	if f.isRegular {
-		// 1. 检查该镜像的私有缓存中是否存在cid文件
-		_, err := os.Lstat(filepath.Join(f.privateCachePath, f.privateCahceName))
-		if err != nil {
-			// 该当前私有缓存中不存在cid文件，向gear client请求将cid文件下载到指定目录
-			_, err := http.PostForm("http://localhost:2020"+"/get/"+f.privateCahceName, url.Values{"PATH":{f.privateCachePath}, "PERM":{"0777"}})
-			if err != nil {
-				logger.Warnf("Fail to get file for %v", err)
-			}
-			// 修改文件的权限
-			IndexFileInfo, err := os.Lstat(f.filePath)
-			if err != nil {
-				logger.Warnf("Fail to get index file info for %v", err)
-			}
-			err = os.Chmod(filepath.Join(f.privateCachePath, f.privateCahceName), IndexFileInfo.Mode())
-			if err != nil {
-				logger.Warnf("Fail to chmod for %v", err)
-			}
-			err = os.Chown(filepath.Join(f.privateCachePath, f.privateCahceName), int(IndexFileInfo.Sys().(*syscall.Stat_t).Uid), int(IndexFileInfo.Sys().(*syscall.Stat_t).Gid))
-			if err != nil {
-				logger.Warnf("Fail to chown for %v", err)
-			}
-		}
-
-		// 2. 打开私有缓存中的文件
-		file, err := os.Open(filepath.Join(f.privateCachePath, f.privateCahceName))
+	// 首先查看上层目录是否已经存在该文件
+	_, err := os.Lstat(filepath.Join(f.upperPath, f.relativePath))
+	if err == nil {
+		// 是的话就打开upper目录的文件
+		file, err := os.Open(filepath.Join(f.upperPath, f.relativePath))
 		if err != nil {
 			logger.Warnf("Fail to open file: %v", err)
 		}
@@ -428,21 +415,52 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 		return &fileHandler, nil
 	}
 
-	file, err := os.Open(f.filePath)
+	// 否则，再判断是否是普通文件，是否需要下载等等
+	if f.isRegular {
+		// 1. 检查该镜像的私有缓存中是否存在cid文件
+		_, err := os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
+		if err != nil {
+			// 该当前私有缓存中不存在cid文件，向gear client请求将cid文件下载到指定目录
+			_, err := http.PostForm("http://localhost:2020"+"/get/"+f.privateCacheName, url.Values{"PATH":{f.privateCachePath}, "PERM":{"0777"}})
+			if err != nil {
+				logger.Warnf("Fail to get file for %v", err)
+			}
+			// 修改文件的权限
+			IndexFileInfo, err := os.Lstat(filepath.Join(f.indexImagePath, f.relativePath))
+			if err != nil {
+				logger.Warnf("Fail to get index file info for %v", err)
+			}
+			err = os.Chmod(filepath.Join(f.privateCachePath, f.privateCacheName), IndexFileInfo.Mode())
+			if err != nil {
+				logger.Warnf("Fail to chmod for %v", err)
+			}
+			err = os.Chown(filepath.Join(f.privateCachePath, f.privateCacheName), int(IndexFileInfo.Sys().(*syscall.Stat_t).Uid), int(IndexFileInfo.Sys().(*syscall.Stat_t).Gid))
+			if err != nil {
+				logger.Warnf("Fail to chown for %v", err)
+			}
+		}
+
+		// 2. 打开私有缓存中的文件
+		file, err := os.Open(filepath.Join(f.privateCachePath, f.privateCacheName))
+		if err != nil {
+			logger.Warnf("Fail to open file: %v", err)
+		}
+		fileHandler.f = file
+
+		return &fileHandler, nil
+	}
+
+	file, err := os.Open(filepath.Join(f.indexImagePath, f.relativePath))
 	if err != nil {
 		logger.Warnf("Fail to open file: %v", err)
 	}
 	fileHandler.f = file
 	
-	fmt.Println(fileHandler)
 	return &fileHandler, nil
 }
 
 func (f *File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
-	fmt.Println("f.Readlink()")
-	fmt.Println(f)
-
-	target, err := os.Readlink(f.filePath)
+	target, err := os.Readlink(filepath.Join(f.indexImagePath, f.relativePath))
 	if err != nil {
 		logger.Warnf("Fail to read link for %v", err)
 	}
@@ -450,24 +468,16 @@ func (f *File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string,
 	return target, err
 }
 
-// func (f *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
-
-// }
-
 type FileHandler struct {
 	f *os.File
 }
 
 func (fh *FileHandler) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
-	fmt.Println("fh.Release()")
-	fmt.Println(fh)
 
 	return fh.f.Close()
 }
 
 func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-	fmt.Println("fh.Read()")
-	fmt.Println(fh)
 
 	buf := make([]byte, req.Size)
 	n, err := fh.f.Read(buf)
@@ -477,8 +487,6 @@ func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fu
 }
 
 func (fh *FileHandler) ReadAll(ctx context.Context) ([]byte, error) {
-	fmt.Println("fh.ReadAll()")
-	fmt.Println(fh)
 
 	data, err := ioutil.ReadAll(fh.f)
 
@@ -486,33 +494,8 @@ func (fh *FileHandler) ReadAll(ctx context.Context) ([]byte, error) {
 }
 
 func (fh *FileHandler) Flush(ctx context.Context, req *fuse.FlushRequest) error {
-	fmt.Println("fh.Flush()")
-	fmt.Println(fh)
-
 	return nil
 }
-
-// func (fh *FileHandler) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
-// 	fmt.Println("fh.Write()")
-// 	data := req.Data
-// 	offset := req.Offset
-// 	n, err := fh.f.WriteAt(data, offset)
-// 	if err != nil {
-// 		logger.Warnf("Fail to write file for %v", err)
-// 	}
-// 	resp.Size = n
-// 	return err
-// }
- 
-// func (fh *FileHandler) Flush(ctx context.Context, req *fuse.FlushRequest) error {
-// 	fmt.Println("fh.Flush()")
-// 	err := fh.f.Sync()
-// 	if err != nil {
-// 		logger.Warnf("Fail to sync for %v", err)
-// 	}
-
-// 	return err
-// }
 
 
 
