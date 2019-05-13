@@ -540,7 +540,7 @@ func (d *Driver) ApplyDiff(id, parent string, diff io.Reader) (int64, error) {
 			}
 		}
 
-		return directory.Size(context.TODO(), gearPath)
+		return size, nil
 	}
 }
 
