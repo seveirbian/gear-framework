@@ -505,27 +505,8 @@ func (d *Driver) ApplyDiff(id, parent string, diff io.Reader) (int64, error) {
 	fmt.Printf("  id: %s\n", id)
 	fmt.Printf("  parent: %s\n", parent)
 
-	// 1. 将镜像内容先保存到tmp文件中
-	tmpFilePath := filepath.Join(d.home, id, "tmp")
-	tmpFile, err := os.Create(tmpFilePath)
-	if err != nil {
-		logger.Warnf("Fail to create tmp file for %v", err)
-	}
-	defer tmpFile.Close()
-	_, err = io.Copy(tmpFile, diff)
-	if err != nil {
-		logger.Warnf("Fail to copy from diff to tmp file for %v", err)
-	}
-
-	// 2. 打开tmp文件
-	tmpFile1, err := os.Open(tmpFilePath)
-	if err != nil {
-		logger.Warnf("Fail to open tmp file for %v", err)
-	}
-	defer tmpFile1.Close()
-
-	// 3. 使用graphdriver将tmpFile解压到相应文件夹中
-	size, err := d.dockerDriver.ApplyDiff(id, parent, tmpFile1)
+	// 1. 直接将数据解压到diff文件中
+	size, err := d.dockerDriver.ApplyDiff(id, parent, diff)
 
 	// 4. 检测当前镜像是否是gear镜像
 	path := filepath.Join(d.home, id, "diff", "gear-image")
@@ -534,54 +515,23 @@ func (d *Driver) ApplyDiff(id, parent string, diff io.Reader) (int64, error) {
 	// 判断gear镜像
 	if err != nil {
 		// 不是gear镜像
-		// 5. 删除tmp文件
-		err = os.Remove(tmpFilePath)
-		if err != nil {
-			logger.Warnf("Fail to remove tmp file for %v", err)
-		}
-
 		// 直接返回
 		return size, nil
 	} else {
-		// 是gear镜像，就清空diff文件夹，并创建gear-diff文件夹，将tmpFile内容解压到gear-diff文件夹中
-		// 1. 清空diff文件夹
-		err := os.RemoveAll(filepath.Join(d.home, id, "diff"))
+		// 是gear镜像，将diff文件夹重命名为gear-diff
+		err := os.Rename(filepath.Join(d.home, id, "diff"), filepath.Join(d.home, id, "gear-diff"))
 		if err != nil {
-			logger.Warnf("Fail to remove all file under diff for %v", err)
-		}
-		err = os.MkdirAll(filepath.Join(d.home, id, "diff"), 0700)
-		if err != nil {
-			logger.Warnf("Fail to create diff dir for %v", err)
+			logger.Warnf("Fail to rename diff dir to gear-diff for %v", err)
 		}
 
-		// 2. 创建gear文件夹
-		gearPath := filepath.Join(d.home, id, "gear-diff")
-		err = os.MkdirAll(gearPath, 0700)
-		if err != nil {
-			logger.Warnf("Fail to create gear dir for %v", err)
-		}
-
-		// 3. 创建gearlink
+		// 2. 创建gearlink
 		gearLower := filepath.Join(d.home, id, "gear-lower")
 		err = os.Symlink(filepath.Join(d.home, id), gearLower)
 		if err != nil {
 			logger.Warnf("Fail to create gear link for %v", err)
 		}
 
-		// 4. 解压到gear文件夹
-		tmpFile2, err := os.Open(tmpFilePath)
-		if err != nil {
-			logger.Warnf("Fail to open tmp file for %v", err)
-		}
-		defer tmpFile2.Close()
-		
-		options := &archive.TarOptions{UIDMaps: d.uidMaps,
-			GIDMaps: d.gidMaps}
-		if _, err = chrootarchive.ApplyUncompressedLayer(gearPath, tmpFile2, options); err != nil {
-			logger.Warnf("Fail to applyTar for %v", err)
-		}
-
-		// 5. 删除overlay driver创建的lower文件
+		// 3. 删除overlay driver创建的lower文件
 		_, err = os.Lstat(filepath.Join(d.home, id, "lower"))
 		if err == nil {
 			err := os.Remove(filepath.Join(d.home, id, "lower"))
@@ -589,16 +539,6 @@ func (d *Driver) ApplyDiff(id, parent string, diff io.Reader) (int64, error) {
 				logger.Warnf("Fail to remove lower for %v", err)
 			}
 		}
-
-		// 6. 删除tmp文件
-		err = os.Remove(tmpFilePath)
-		if err != nil {
-			logger.Warnf("Fail to remove tmp file for %v", err)
-		}
-
-		// 7. 清除docker engine中关于parent的关系，即删除
-		// /var/lib/docker/image/geargraphdriver/layerdb/sha256/ID/parent文件
-		// TODO
 
 		return directory.Size(context.TODO(), gearPath)
 	}
