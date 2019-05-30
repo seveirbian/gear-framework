@@ -83,7 +83,7 @@ func (p *Pusher) Push() {
     	delete(p.FilesToSent, cid)
     }
 
-    fmt.Println("Uploading: ")
+    fmt.Println("Uploading...")
     for cid, path := range p.FilesToSent {
     	// 创建表单文件
 	    // CreateFormFile 用来创建表单，第一个参数是字段名，第二个参数是文件名

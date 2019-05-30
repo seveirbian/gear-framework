@@ -37,3 +37,8 @@ type Response struct {
 	Action string `json:"action"`
 	EtcdNode EtcdNode `json:"node"`
 }
+
+type Image struct {
+	Repository string
+	Tag string
+}

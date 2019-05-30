@@ -145,19 +145,20 @@ func InitBuilder(image string) (*Builder, error) {
 func parseImage(image string) (imageName string, imageTag string) {
 	imageAndTag := strings.Split(image, ":")
 
-	if len(imageAndTag) != 2 {
-		if len(imageAndTag) == 1 {
-			logger.Warn("No image tag provided, use \"latest\"\n")
-			imageName = imageAndTag[0]
-			imageTag = "latest"
-			return
-		} else {
-			logger.Fatal("Invalid ImageName and Tag...")
-		}
+	switch len(imageAndTag) {
+	case 1:
+		logger.Warn("No image tag provided, use \"latest\"\n")
+		imageName = imageAndTag[0]
+		imageTag = "latest"
+	case 2: 
+		imageName = imageAndTag[0]
+		imageTag = imageAndTag[1]
+	case 3: 
+		imageName = imageAndTag[0] + ":" + imageAndTag[1]
+		imageTag = imageAndTag[2]
+	default: 
+		logger.Fatal("Invalid ImageName and Tag...")
 	}
-
-	imageName = imageAndTag[0]
-	imageTag = imageAndTag[1]
 
 	return
 }
