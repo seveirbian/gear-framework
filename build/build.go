@@ -125,7 +125,7 @@ func InitBuilder(image string) (*Builder, error) {
 	var dOverlayID string
 	dOverlayID = imageInfo.GraphDriver.Data["UpperDir"]
 	// dOverlayID = strings.Split(dOverlayID, "/var/lib/docker/overlay2/")[1]
-	dOverlayID = strings.Split(dOverlayID, "/var/lib/docker/geargraphdriver/")[1]
+	dOverlayID = strings.Split(dOverlayID, "/var/lib/docker/overlay2/")[1]
 	dOverlayID = strings.Split(dOverlayID, "/diff")[0]
 
 	return &Builder{
