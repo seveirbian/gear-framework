@@ -34,7 +34,7 @@ type Pusher struct {
 	FilesToSent map[string]string
 }
 
-func InitBuilder(path, ip, port string) (*Pusher, error) {
+func InitPusher(path, ip, port string) (*Pusher, error) {
 	return &Pusher {
 		StorageIP: ip, 
 		StoragePort: port, 
@@ -115,22 +115,38 @@ func (p *Pusher) Push() {
     fmt.Println("Push OK!")
 }
 
-func ParseImage(image string) (imageName string, imageTag string) {
-	imageAndTag := strings.Split(image, ":")
+func parseImage(image string) (imageName string, imageTag string) {
+	registryAndImage := strings.Split(image, "/")
 
-	if len(imageAndTag) != 2 {
-		if len(imageAndTag) == 1 {
+	// dockerhub镜像
+	if len(registryAndImage) == 1 {
+		imageAndTag := strings.Split(image, ":")
+
+		switch len(imageAndTag) {
+		case 1: 
 			logger.Warn("No image tag provided, use \"latest\"\n")
 			imageName = imageAndTag[0]
 			imageTag = "latest"
-			return
-		} else {
-			logger.Fatal("Invalid ImageName and Tag...")
+		case 2:
+			imageName = imageAndTag[0]
+			imageTag = imageAndTag[1]
 		}
 	}
 
-	imageName = imageAndTag[0]
-	imageTag = imageAndTag[1]
+	// 私有仓库镜像
+	if len(registryAndImage) == 2 {
+		imageAndTag := strings.Split(registryAndImage[1], ":")
+
+		switch len(imageAndTag) {
+		case 1: 
+			logger.Warn("No image tag provided, use \"latest\"\n")
+			imageName = registryAndImage[0] + "/" + imageAndTag[0]
+			imageTag = "latest"
+		case 2:
+			imageName = registryAndImage[0] + "/" + imageAndTag[0]
+			imageTag = imageAndTag[1]
+		}
+	}
 
 	return
 }
