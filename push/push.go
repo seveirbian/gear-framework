@@ -115,7 +115,7 @@ func (p *Pusher) Push() {
     fmt.Println("Push OK!")
 }
 
-func parseImage(image string) (imageName string, imageTag string) {
+func ParseImage(image string) (imageName string, imageTag string) {
 	registryAndImage := strings.Split(image, "/")
 
 	// dockerhub镜像
