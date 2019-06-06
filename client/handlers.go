@@ -152,7 +152,7 @@ func handleUpload(c echo.Context) error {
 	dir := c.FormValue("PATH")
 	fmt.Println(dir)
 	
-	pusher, err := push.InitBuilder(dir, cli.Manager.IP, cli.Manager.Port)
+	pusher, err := push.InitPusher(dir, cli.Manager.IP, cli.Manager.Port)
     if err != nil {
         logger.Fatal("Fail to init a pusher to push gear image...")
     }

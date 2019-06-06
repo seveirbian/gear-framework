@@ -260,7 +260,7 @@ func (m *Monitor) do_build(image gearTypes.Image) error {
 	// 3. 将gear镜像push到镜像仓库，并将备用文件存储到存储中
 	fmt.Printf("Pushing %s:%s/%s:%s\n", m.RegistryIp, m.RegistryPort, image.Repository+"-gear", image.Tag)
     gFIlesDir := filepath.Join(GearBuildPath, m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+"-gear"+":"+image.Tag, "files")
-    pusher, err := push.InitBuilder(gFIlesDir, m.ManagerIp, m.ManagerPort)
+    pusher, err := push.InitPusher(gFIlesDir, m.ManagerIp, m.ManagerPort)
     if err != nil {
         logrus.Fatal("Fail to init a pusher to push gear image...")
     }
