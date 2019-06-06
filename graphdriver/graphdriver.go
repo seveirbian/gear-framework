@@ -85,6 +85,8 @@ type Driver struct {
 	supportsDType    bool
 	locker           *locker.Locker
 	dockerDriver     graphdriver.Driver
+
+	MonitorServer    string
 }
 
 var (
@@ -241,7 +243,11 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 			if _, ok := gearCtr[gearDiffDir]; !ok {
 				// 第一次挂载
 				gearCtr[gearDiffDir] = 1
-				go gearFS.StartAndNotify(notify)
+				if d.MonitorServer != "" {
+					go gearFS.StartAndNotify(notify, true, d.MonitorServer)
+				} else {
+					go gearFS.StartAndNotify(notify, false, d.MonitorServer)
+				}
 				<- notify
 			} else {
 				gearCtr[gearDiffDir] += 1
@@ -538,6 +544,12 @@ func (d *Driver) ApplyDiff(id, parent string, diff io.Reader) (int64, error) {
 			if err != nil {
 				logger.Warnf("Fail to remove lower for %v", err)
 			}
+		}
+
+		// 4. 创建diff文件夹
+		err = os.MkdirAll(filepath.Join(d.home, id, "diff"), os.ModePerm)
+		if err != nil {
+			logger.Warnf("Fail to mkdir diff for %v", err)
 		}
 
 		return size, nil

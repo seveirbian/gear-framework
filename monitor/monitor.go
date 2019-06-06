@@ -22,13 +22,13 @@ import (
 	"github.com/seveirbian/gear/push"
 	"github.com/labstack/echo"
 	"github.com/seveirbian/gear/pkg"
-	"github.com/docker/docker/daemon/graphdriver/overlay2"
-	"github.com/fsnotify/fsnotify"
+	// "github.com/docker/docker/daemon/graphdriver/overlay2"
+	// "github.com/fsnotify/fsnotify"
 )
 
 var (
 	logger = logrus.WithField("gear", "monitor")
-	maxTime = time.Duration(time.Second*6000)
+	maxTime = time.Duration(time.Second*60)
 )
 
 var AccessedFiles []string
@@ -96,6 +96,9 @@ func InitMonitor(registry string, preRun bool, managerIp, managerPort string) (*
 }
 
 func (m *Monitor) Monitor() error {
+	// 启动服务器
+	go m.Server.Start(m.MonitorIp + ":" + m.MonitorPort)
+
 	// 获取待处理的镜像列表
 	m.getRepositories()
 
@@ -243,54 +246,38 @@ func (m *Monitor) do_build(image gearTypes.Image) error {
 	}
 	fmt.Println("Pull OK!")
 
-	// 2. Prerun镜像，获取镜像在启动时需要的数据并将数据上传到etcd中
+	// 2. 调用build命令，构建gear镜像
+	builder, err := build.InitBuilder(m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+":"+image.Tag)
+	if err != nil {
+		logrus.Fatal("Fail to init a builder to build gear image...")
+	}
+
+	err = builder.Build()
+	if err != nil {
+		logrus.Fatal("Fail to build gear image...")
+	}
+
+	// 3. 将gear镜像push到镜像仓库，并将备用文件存储到存储中
+	fmt.Printf("Pushing %s:%s/%s:%s\n", m.RegistryIp, m.RegistryPort, image.Repository+"-gear", image.Tag)
+    gFIlesDir := filepath.Join(GearBuildPath, m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+"-gear"+":"+image.Tag, "files")
+    pusher, err := push.InitBuilder(gFIlesDir, m.ManagerIp, m.ManagerPort)
+    if err != nil {
+        logrus.Fatal("Fail to init a pusher to push gear image...")
+    }
+    pusher.Push()
+
+    // 4. Prerun镜像，获取镜像在启动时需要的数据并将数据上传到etcd中
 	if m.PreRun {
-		// 获取容器镜像相关配置信息
-		imageInfo, _, err := m.Client.ImageInspectWithRaw(m.Ctx, m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+":"+image.Tag)
-		if err != nil {
-			logger.Warnf("Fail to inspect image: %s\n", m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+":"+image.Tag)
-			return err
-		}
-
-		var dOverlayID string
-		dOverlayID = imageInfo.GraphDriver.Data["UpperDir"]
-		dOverlayID = strings.Split(dOverlayID, "/var/lib/docker/overlay2/")[1]
-		dOverlayID = strings.Split(dOverlayID, "/diff")[0]
-
-		driver, err := overlay2.Init("/var/lib/docker/overlay2", []string{}, nil, nil)
-		if err != nil {
-			logger.WithField("err", err).Warn("Fail to create overlay2 driver...")
-			return err
-		}
-
-		mountPath, err := driver.Get(dOverlayID, "")
-		if err != nil {
-			logger.WithField("err", err).Warn("Fail to mount overlayfs...")
-			return err
-		}
-		defer driver.Put(dOverlayID)
-
-		mergedPath := mountPath.Path()
-
-		// 启动监视器
-		stop := make(chan bool)
-		out := make(chan fsnotify.Event, 5000)
-
-		dirs, err := walkDirs([]string{mergedPath})
-		if err != nil {
-			logger.Warnf("Fail to walk merged path")
-		}
-
-		Watch(dirs, stop, out)
+		AccessedFiles = []string{}
 
 		// 运行容器
-		// containerConfig := imageInfo.ContainerConfig
-		// containerConfig.Image = m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+":"+image.Tag
-		// fmt.Println(containerConfig)
-		resp, err := m.Client.ContainerCreate(m.Ctx, &container.Config{
-			Image: "alpine",
-			Cmd:   []string{"echo", "hello world"},
-			}, &container.HostConfig{
+		imageInfo, _, err := m.Client.ImageInspectWithRaw(m.Ctx, m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+"-gear"+":"+image.Tag)
+		if err != nil {
+			logger.Warnf("Fail to inspect image: %s\n", m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+"-gear"+":"+image.Tag)
+			return err
+		}
+		containerConfig := imageInfo.ContainerConfig
+		resp, err := m.Client.ContainerCreate(m.Ctx, containerConfig, &container.HostConfig{
 			PublishAllPorts: true, 
 			Privileged: true, 
 		}, nil, "")
@@ -302,41 +289,14 @@ func (m *Monitor) do_build(image gearTypes.Image) error {
 			logger.Warnf("Fail to start container for %v", err)
 		}
 
-		go func() {
-			// 等待容器运行时间
-			t := time.NewTicker(maxTime)
-	        defer t.Stop()
+		// 等待执行完成
+		t := time.NewTicker(maxTime)
+        defer t.Stop()
 
-	        <- t.C
-	        stop <- true
-		}()
+        <- t.C
 
-        fmt.Println("\n\nfilesNoticed [\n")
-        for event := range out {
-        	fmt.Println(event)
-        }
-        fmt.Println("\n]\n\n")
+		fmt.Println(AccessedFiles)
 	}
-
-	// 3. 调用build命令，构建gear镜像
-	builder, err := build.InitBuilder(m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+":"+image.Tag)
-	if err != nil {
-		logrus.Fatal("Fail to init a builder to build gear image...")
-	}
-
-	err = builder.Build()
-	if err != nil {
-		logrus.Fatal("Fail to build gear image...")
-	}
-
-	// 4. 将gear镜像push到镜像仓库，并将备用文件存储到存储中
-	fmt.Printf("Pushing %s:%s/%s:%s\n", m.RegistryIp, m.RegistryPort, image.Repository+"-gear", image.Tag)
-    gFIlesDir := filepath.Join(GearBuildPath, m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+"-gear"+":"+image.Tag, "files")
-    pusher, err := push.InitBuilder(gFIlesDir, m.ManagerIp, m.ManagerPort)
-    if err != nil {
-        logrus.Fatal("Fail to init a pusher to push gear image...")
-    }
-    pusher.Push()
 
 	return nil
 }

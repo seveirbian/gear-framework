@@ -15,6 +15,7 @@ import (
 	"github.com/seveirbian/gear/pkg"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/daemon/graphdriver/overlay2"
+	// "github.com/seveirbian/gear/graphdriver"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -123,7 +124,8 @@ func InitBuilder(image string) (*Builder, error) {
 	// 6. get Dimage's lower layer paths and upper layer path
 	var dOverlayID string
 	dOverlayID = imageInfo.GraphDriver.Data["UpperDir"]
-	dOverlayID = strings.Split(dOverlayID, "/var/lib/docker/overlay2/")[1]
+	// dOverlayID = strings.Split(dOverlayID, "/var/lib/docker/overlay2/")[1]
+	dOverlayID = strings.Split(dOverlayID, "/var/lib/docker/geargraphdriver/")[1]
 	dOverlayID = strings.Split(dOverlayID, "/diff")[0]
 
 	return &Builder{
@@ -143,21 +145,36 @@ func InitBuilder(image string) (*Builder, error) {
 }
 
 func parseImage(image string) (imageName string, imageTag string) {
-	imageAndTag := strings.Split(image, ":")
+	registryAndImage := strings.Split(image, "/")
 
-	switch len(imageAndTag) {
-	case 1:
-		logger.Warn("No image tag provided, use \"latest\"\n")
-		imageName = imageAndTag[0]
-		imageTag = "latest"
-	case 2: 
-		imageName = imageAndTag[0]
-		imageTag = imageAndTag[1]
-	case 3: 
-		imageName = imageAndTag[0] + ":" + imageAndTag[1]
-		imageTag = imageAndTag[2]
-	default: 
-		logger.Fatal("Invalid ImageName and Tag...")
+	// dockerhub镜像
+	if len(registryAndImage) == 1 {
+		imageAndTag := strings.Split(image, ":")
+
+		switch len(imageAndTag) {
+		case 1: 
+			logger.Warn("No image tag provided, use \"latest\"\n")
+			imageName = imageAndTag[0]
+			imageTag = "latest"
+		case 2:
+			imageName = imageAndTag[0]
+			imageTag = imageAndTag[1]
+		}
+	}
+
+	// 私有仓库镜像
+	if len(registryAndImage) == 2 {
+		imageAndTag := strings.Split(registryAndImage[1], ":")
+
+		switch len(imageAndTag) {
+		case 1: 
+			logger.Warn("No image tag provided, use \"latest\"\n")
+			imageName = registryAndImage[0] + "/" + imageAndTag[0]
+			imageTag = "latest"
+		case 2:
+			imageName = registryAndImage[0] + "/" + imageAndTag[0]
+			imageTag = imageAndTag[1]
+		}
 	}
 
 	return
