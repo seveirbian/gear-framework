@@ -18,7 +18,6 @@ import (
 	gearTypes "github.com/seveirbian/gear/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/docker/docker/api/types/container"
 	"github.com/seveirbian/gear/push"
 	"github.com/labstack/echo"
 	"github.com/seveirbian/gear/pkg"
@@ -48,8 +47,6 @@ type Monitor struct {
 	ManagerIp string
 	ManagerPort string
 
-	PreRun bool
-
 	Server *echo.Echo
 
 	Ctx    context.Context
@@ -62,7 +59,7 @@ type Monitor struct {
 	ToBeBuild map[string][]string
 }
 
-func InitMonitor(registry string, preRun bool, managerIp, managerPort string) (*Monitor, error) {
+func InitMonitor(registry string, managerIp, managerPort string) (*Monitor, error) {
 	ip, port := parseRegistry(registry)
 
 	// 创建cli用来和dockerd交互
@@ -89,7 +86,6 @@ func InitMonitor(registry string, preRun bool, managerIp, managerPort string) (*
 		Server: e, 
 		ManagerIp: managerIp, 
 		ManagerPort: managerPort, 
-		PreRun: preRun, 
 		Ctx: ctx, 
 		Client: cli, 
 	}, nil
@@ -265,38 +261,6 @@ func (m *Monitor) do_build(image gearTypes.Image) error {
         logrus.Fatal("Fail to init a pusher to push gear image...")
     }
     pusher.Push()
-
-    // 4. Prerun镜像，获取镜像在启动时需要的数据并将数据上传到etcd中
-	if m.PreRun {
-		AccessedFiles = []string{}
-
-		// 运行容器
-		imageInfo, _, err := m.Client.ImageInspectWithRaw(m.Ctx, m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+"-gear"+":"+image.Tag)
-		if err != nil {
-			logger.Warnf("Fail to inspect image: %s\n", m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+"-gear"+":"+image.Tag)
-			return err
-		}
-		containerConfig := imageInfo.ContainerConfig
-		resp, err := m.Client.ContainerCreate(m.Ctx, containerConfig, &container.HostConfig{
-			PublishAllPorts: true, 
-			Privileged: true, 
-		}, nil, "")
-		if err != nil {
-			logger.Warnf("Fail to create container for %v", err)
-		}
-
-		if err := m.Client.ContainerStart(m.Ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-			logger.Warnf("Fail to start container for %v", err)
-		}
-
-		// 等待执行完成
-		t := time.NewTicker(maxTime)
-        defer t.Stop()
-
-        <- t.C
-
-		fmt.Println(AccessedFiles)
-	}
 
 	return nil
 }

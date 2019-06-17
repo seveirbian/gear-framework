@@ -243,11 +243,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 			if _, ok := gearCtr[gearDiffDir]; !ok {
 				// 第一次挂载
 				gearCtr[gearDiffDir] = 1
-				if d.MonitorServer != "" {
-					go gearFS.StartAndNotify(notify, true, d.MonitorServer)
-				} else {
-					go gearFS.StartAndNotify(notify, false, d.MonitorServer)
-				}
+				go gearFS.StartAndNotify(notify)
 				<- notify
 			} else {
 				gearCtr[gearDiffDir] += 1

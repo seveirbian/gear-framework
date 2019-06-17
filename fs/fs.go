@@ -25,11 +25,6 @@ var (
 	logger = logrus.WithField("fs", "gearFS")
 )
 
-var (
-	monitor = false
-	server string
-)
-
 type GearFS struct {
 	MountPoint string
 
@@ -97,12 +92,7 @@ func (g * GearFS) Start() {
 	}
 }
 
-func (g * GearFS) StartAndNotify(notify chan int, m bool, s string) {
-	// 0. 判断是否需要监控文件访问
-	if m {
-		monitor = m
-		server = s
-	}
+func (g * GearFS) StartAndNotify(notify chan int) {
 
 	// 1. 检测index image目录、 private cache目录和挂载点目录是否合法
 	indexImagePath, err := ValidatePath(g.IndexImagePath)
@@ -339,18 +329,6 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 		}
 		f.privateCacheName = string(name)
 
-		// 发送监控到的文件给服务器
-		if monitor {
-			fmt.Println("\n\n\n\n\n!!!!!!!!!!!!Get one!")
-			resp, err := http.PostForm(server+"/event", url.Values{"path":{f.indexImagePath}, "hash":{f.privateCacheName}})
-			if err != nil {
-				logger.Warnf("Fail to send to server")
-			}
-			if resp.StatusCode != http.StatusOK {
-				logger.Warnf("Fail to record file to server")
-			}
-		}
-
 		// 检测private cache中是否存在该文件
 		_, err = os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 		if err != nil {
@@ -422,18 +400,6 @@ func (f *File) Access(ctx context.Context, req *fuse.AccessRequest) error {
 }
 
 func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
-
-	// 发送监控到的文件给服务器
-	if monitor {
-		fmt.Println("\n\n\n\n\n!!!!!!!!!!!!Get one!")
-		resp, err := http.PostForm(server+"/event", url.Values{"path":{f.indexImagePath}, "hash":{f.privateCacheName}})
-		if err != nil {
-			logger.Warnf("Fail to send to server")
-		}
-		if resp.StatusCode != http.StatusOK {
-			logger.Warnf("Fail to record file to server")
-		}
-	}
 
 	var fileHandler = FileHandler{}
 

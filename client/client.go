@@ -32,13 +32,15 @@ type Client struct {
 
 	Echo  *echo.Echo
 
+	EnableP2p bool
+
 	Manager types.Node
 
 	NodesMu sync.RWMutex
 	Nodes map[uint64]types.Node
 }
 
-func Init(managerIP string, managerPort string) (*Client, error) {
+func Init(managerIP string, managerPort string, enbaleP2p bool) (*Client, error) {
 	// 1. create new echo instance
 	e := echo.New()
 
@@ -66,20 +68,20 @@ func Init(managerIP string, managerPort string) (*Client, error) {
 		IP: managerIP, 
 		Port: managerPort, 
 	}
+	cli.EnableP2p = enbaleP2p
 
 	return &cli, nil
 }
 
 func (c *Client) Start() {
-	// 将自己的信息添加到manager中并且从manager中获取集群其他节点、etcd和nfs信息
-	c.joinCluster()
-	fmt.Println(c.Nodes)
+	if c.EnableP2p {
+		// 将自己的信息添加到manager中并且从manager中获取集群其他节点、etcd和nfs信息
+		c.joinCluster()
+		fmt.Println(c.Nodes)
 
-	// 一个协程来定期(60秒)更新集群节点信息
-	go updateNodes(c)
-
-	// 挂在nfs目录
-	// c.mountNFS()
+		// 一个协程来定期(60秒)更新集群节点信息
+		go updateNodes(c)
+	}
 
 	c.start()
 }
