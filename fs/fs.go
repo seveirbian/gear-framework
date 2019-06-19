@@ -66,14 +66,12 @@ func (g * GearFS) Start() {
 	go func(c *fuse.Conn) {
 		<- sigs
 		fmt.Println("umounting fuse...")
-		for {
-			err := c.Close()
-			if err != nil {
-				fmt.Println(err)
-			}
-			if err == nil {
-				break
-			}
+		err := c.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+		if err == nil {
+			break
 		}
 		os.Exit(0)
 	}(c)
