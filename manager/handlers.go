@@ -150,10 +150,14 @@ func handleReport(c echo.Context) error {
 	// 1. 获取镜像名
 	image := c.Param("IMAGE")
 	// 2. 获取文件
-	files := c.FormValue("files")
+	type recordedFiles struct {
+		files []string
+	}
+	r := recordedFiles{}
+	c.Bind(r)
 
 	fmt.Println(image)
-	fmt.Println(files)
+	fmt.Println(r)
 
 	return c.NoContent(http.StatusOK)
 }

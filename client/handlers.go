@@ -209,14 +209,15 @@ func handleReport(c echo.Context) error {
 		return c.NoContent(http.StatusOK)
 	}
 
-	fmt.Println(imageFetchedFiles[image])
-
 	// 向manager汇报
 	files := []string{}
 	for file, _ := range imageFetchedFiles[image] {
 		files = append(files, file)
 	}
 	v := url.Values{"files": files}
+
+	fmt.Println(v)
+	
 	resp, err := http.PostForm("http://"+cli.Manager.IP+":"+cli.Manager.Port+"/report/"+image, v)
 	if err != nil {
 		logger.Warnf("Fail to report to manager for %v", err)
