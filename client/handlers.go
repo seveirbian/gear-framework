@@ -206,7 +206,7 @@ func handleReport(c echo.Context) error {
 	if notReported, ok := recordedImages[image]; ok && notReported {
 		recordedImages[image] = false
 	} else {
-		return c.NoContent(resp.StatusCode)
+		return c.NoContent(http.StatusOK)
 	}
 
 	fmt.Println(imageFetchedFiles[image])
