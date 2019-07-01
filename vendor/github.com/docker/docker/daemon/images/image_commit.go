@@ -18,6 +18,7 @@ func (i *ImageService) CommitImage(c backend.CommitConfig) (image.ID, error) {
 	if !ok {
 		return "", system.ErrNotSupportedOperatingSystem
 	}
+	// 获取容器层内容的tar包流
 	rwTar, err := exportContainerRw(layerStore, c.ContainerID, c.ContainerMountLabel)
 	if err != nil {
 		return "", err
@@ -57,7 +58,7 @@ func (i *ImageService) CommitImage(c backend.CommitConfig) (image.ID, error) {
 	if err != nil {
 		return "", err
 	}
-
+	
 	id, err := i.imageStore.Create(config)
 	if err != nil {
 		return "", err

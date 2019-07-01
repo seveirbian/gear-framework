@@ -22,6 +22,7 @@ import (
 )
 
 var (
+	monitorFlag = false
 	logger = logrus.WithField("fs", "gearFS")
 )
 
@@ -70,9 +71,6 @@ func (g * GearFS) Start() {
 		if err != nil {
 			fmt.Println(err)
 		}
-		if err == nil {
-			break
-		}
 		os.Exit(0)
 	}(c)
 
@@ -90,7 +88,9 @@ func (g * GearFS) Start() {
 	}
 }
 
-func (g * GearFS) StartAndNotify(notify chan int) {
+func (g * GearFS) StartAndNotify(notify chan int, monitor bool) {
+	// 0. 设置检测位
+	monitorFlag = monitor
 
 	// 1. 检测index image目录、 private cache目录和挂载点目录是否合法
 	indexImagePath, err := ValidatePath(g.IndexImagePath)
@@ -124,14 +124,9 @@ func (g * GearFS) StartAndNotify(notify chan int) {
 	go func(c *fuse.Conn) {
 		<- sigs
 		fmt.Println("umounting fuse...")
-		for {
-			err := c.Close()
-			if err != nil {
-				fmt.Println(err)
-			}
-			if err == nil {
-				break
-			}
+		err := c.Close()
+		if err != nil {
+			fmt.Println(err)
 		}
 		os.Exit(0)
 	}(c)
@@ -390,6 +385,20 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	fmt.Println("f< ", f.relativePath, " >")
 	fmt.Println("f.Attr< ", attr, " >")
 
+	go func() {
+		if monitorFlag {
+			image, err := os.Readlink(filepath.Join(f.indexImagePath, "gear-image"))
+			if err != nil {
+				logger.Warnf("Fail to readlink for %v", err)
+			}
+			resp, err := http.PostForm("http://localhost:2020/record/"+image+"/"+f.privateCacheName, url.Values{})
+			if err != nil {
+				logger.Warnf("Fail to post for %v", err)
+			}
+			defer resp.Body.Close()
+		}
+	}()
+
 	return nil
 }
 
@@ -454,6 +463,20 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 		logger.Warnf("Fail to open file: %v", err)
 	}
 	fileHandler.f = file
+
+	go func() {
+		if monitorFlag {
+			image, err := os.Readlink(filepath.Join(f.indexImagePath, "gear-image"))
+			if err != nil {
+				logger.Warnf("Fail to readlink for %v", err)
+			}
+			resp, err := http.PostForm("http://localhost:2020/record/"+image+"/"+f.privateCacheName, url.Values{})
+			if err != nil {
+				logger.Warnf("Fail to post for %v", err)
+			}
+			defer resp.Body.Close()
+		}
+	}()
 	
 	return &fileHandler, nil
 }

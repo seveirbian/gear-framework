@@ -146,7 +146,17 @@ func handlePush(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
+func handleReport(c echo.Context) error {
+	// 1. 获取镜像名
+	image := c.Param("IMAGE")
+	// 2. 获取文件
+	files := c.FormValue("files")
 
+	fmt.Println(image)
+	fmt.Println(files)
+
+	return c.NoContent(http.StatusOK)
+}
 
 
 

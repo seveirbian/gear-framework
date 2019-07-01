@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"time"
 	"os/exec"
 	"path/filepath"
 	"sync"
@@ -47,6 +48,11 @@ var (
 	GearImagesPath       = filepath.Join(GearPath, "images")
 	GearContainersPath   = filepath.Join(GearPath, "containers")
 	GearPushPath         = filepath.Join(GearPath, "push")
+)
+
+var (
+	// 监控gearfs的时间
+	monitorTime = 20
 )
 
 var (
@@ -239,11 +245,38 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 			}
 
 			notify := make(chan int)
+			
+			// 监控gearfs
+			resp, err := http.PostForm("http://localhost:2020/recorded/"+gearImage, url.Values{})
+			if err != nil {
+				logger.Warnf("Fail to post for %v", err)
+			}
+			defer resp.Body.Close()
+
+			needMonitor := false
+			fmt.Println("statusCOde: ", resp.StatusCode)
+			if resp.StatusCode != http.StatusOK {
+				logger.Warnf("Monitoring...")
+				needMonitor = true
+				go func() {
+					t := time.NewTimer(time.Duration(monitorTime) * time.Second)
+					<- t.C
+					resp, err := http.PostForm("http://localhost:2020/report/"+gearImage, url.Values{})
+					if err != nil {
+						logger.Warnf("Fail to post for %v", err)
+					}
+					defer resp.Body.Close()
+				}()
+			} else {
+				logger.Warnf("Has monitored...")
+			}
+
+
 			// 判断是否是第一次挂载
 			if _, ok := gearCtr[gearDiffDir]; !ok {
 				// 第一次挂载
 				gearCtr[gearDiffDir] = 1
-				go gearFS.StartAndNotify(notify)
+				go gearFS.StartAndNotify(notify, needMonitor)
 				<- notify
 			} else {
 				gearCtr[gearDiffDir] += 1

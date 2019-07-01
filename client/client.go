@@ -50,6 +50,10 @@ func Init(managerIP string, managerPort string, enbaleP2p bool) (*Client, error)
 	e.POST("/download/:CID", handleDownload)
 	e.POST("/upload", handleUpload)
 
+	e.POST("/recorded/:IMAGE", handleRecorded)
+	e.POST("/record/:IMAGE/:CID", handleRecord)
+	e.POST("/report/:IMAGE", handleReport)
+
 	// 3. get self's IP
 	ip := pkg.GetSelfIp()
 

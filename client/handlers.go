@@ -18,7 +18,10 @@ import (
 	// "github.com/seveirbian/gear/types"
 )
 
-var ()
+var (
+	recordedImages = map[string]bool{}
+	imageFetchedFiles = map[string]map[string]bool{}
+)
 
 func handleInfo(c echo.Context) error {
 	resp := strconv.FormatUint(cli.Self.ID, 10)+":"+cli.Self.IP+":"+cli.Self.Port
@@ -162,9 +165,66 @@ func handleUpload(c echo.Context) error {
     return c.NoContent(http.StatusOK)
 }
 
+func handleRecorded(c echo.Context) error {
+	image := c.Param("IMAGE")
+	if _, ok := recordedImages[image]; !ok {
+		fmt.Println("IMAGE: ", image)
+		fmt.Println("Recorded: ", ok)
 
+		recordedImages[image] = true
+		imageFetchedFiles[image] = map[string]bool{}
+		return c.NoContent(http.StatusOK)
+	}
 
+	return c.NoContent(http.StatusCreated)
+}
 
+func handleRecord(c echo.Context) error {
+	// 1. get IMAGE and CID
+	image := c.Param("IMAGE")
+	cid := c.Param("CID")
+
+	if notReported, ok := recordedImages[image]; ok && !notReported {
+		return c.NoContent(http.StatusOK)
+	}
+
+	fmt.Println(cid)
+	
+	// 2. 检测是否已经记录过该镜像
+	if _, ok := recordedImages[image]; ok {
+		if _, ok := imageFetchedFiles[image][cid]; !ok {
+			imageFetchedFiles[image][cid] = true
+		}
+	}
+
+    return c.NoContent(http.StatusOK)
+}
+
+func handleReport(c echo.Context) error {
+	image := c.Param("IMAGE")
+
+	if notReported, ok := recordedImages[image]; ok && notReported {
+		recordedImages[image] = false
+	} else {
+		return c.NoContent(resp.StatusCode)
+	}
+
+	fmt.Println(imageFetchedFiles[image])
+
+	// 向manager汇报
+	files := []string{}
+	for file, _ := range imageFetchedFiles[image] {
+		files = append(files, file)
+	}
+	v := url.Values{"files": files}
+	resp, err := http.PostForm("http://"+cli.Manager.IP+":"+cli.Manager.Port+"/report/"+image, v)
+	if err != nil {
+		logger.Warnf("Fail to report to manager for %v", err)
+	}
+	defer resp.Body.Close()
+	
+	return c.NoContent(resp.StatusCode)
+}
 
 
 
