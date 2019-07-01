@@ -155,7 +155,7 @@ func handleReport(c echo.Context) error {
 		logger.Warnf("Fail to parse files for %v", err)
 	}
 
-	files ：= values[files]
+	files := values[files]
 
 	fmt.Println(image)
 	fmt.Println(files)
