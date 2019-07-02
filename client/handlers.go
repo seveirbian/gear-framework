@@ -218,9 +218,9 @@ func handleReport(c echo.Context) error {
 
 	fmt.Println(v)
 
-	resp, err := http.PostForm("http://"+cli.Manager.IP+":"+"2021"+"/report/"+image, v)
+	resp, err := http.PostForm("http://"+cli.Monitor.IP+":"+cli.Monitor.Port+"/event/"+image, v)
 	if err != nil {
-		logger.Warnf("Fail to report to manager for %v", err)
+		logger.Warnf("Fail to report to monitor for %v", err)
 	}
 	defer resp.Body.Close()
 	

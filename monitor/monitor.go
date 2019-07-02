@@ -97,8 +97,8 @@ func (m *Monitor) Monitor() error {
 
 	// 获取待处理的镜像列表
 	for {
-		// m.getRepositories()
-		// m.build()
+		m.getRepositories()
+		m.build()
 		time.Sleep(maxTime)
 	}
 
@@ -250,7 +250,7 @@ func (m *Monitor) do_build(image gearTypes.Image) error {
 		logrus.Fatal("Fail to init a builder to build gear image...")
 	}
 
-	err = builder.Build()
+	err = builder.Build([]string{})
 	if err != nil {
 		logrus.Fatal("Fail to build gear image...")
 	}

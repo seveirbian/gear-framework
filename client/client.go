@@ -35,12 +35,13 @@ type Client struct {
 	EnableP2p bool
 
 	Manager types.Node
+	Monitor types.Node
 
 	NodesMu sync.RWMutex
 	Nodes map[uint64]types.Node
 }
 
-func Init(managerIP string, managerPort string, enbaleP2p bool) (*Client, error) {
+func Init(managerIP string, managerPort string, monitorIP string, monitorPort string, enbaleP2p bool) (*Client, error) {
 	// 1. create new echo instance
 	e := echo.New()
 
@@ -71,6 +72,12 @@ func Init(managerIP string, managerPort string, enbaleP2p bool) (*Client, error)
 		ID: pkg.CreateIdFromIP(managerIP), 
 		IP: managerIP, 
 		Port: managerPort, 
+	}
+
+	cli.Monitor = types.Node{
+		ID: pkg.CreateIdFromIP(monitorIP), 
+		IP: monitorIP, 
+		Port: monitorPort, 
 	}
 	cli.EnableP2p = enbaleP2p
 

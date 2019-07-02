@@ -180,11 +180,11 @@ func parseImage(image string) (imageName string, imageTag string) {
 	return
 }
 
-func (b *Builder) Build() error {
+func (b *Builder) Build(recordedFiles []string) error {
 	// 1. mount these path and tar irregular files into tmp.tar and
 	// copy regular files to GearBuildPath/imageID/common/
 	fmt.Println("Tar tmp.tar and copy regular files...")
-	err := b.tarAndCopy()
+	err := b.tarAndCopy(recordedFiles)
 	if err != nil {
 		logger.Warn("Fail to walk through layers of this image...")
 		return err
@@ -209,7 +209,7 @@ func (b *Builder) Build() error {
 	return nil
 }
 
-func (b *Builder) tarAndCopy() error {
+func (b *Builder) tarAndCopy(recordedFiles []string) error {
 	// 1. mount lower layer paths and upper layer path using overlayfs
 	driver, err := overlay2.Init("/var/lib/docker/overlay2", []string{}, nil, nil)
 	if err != nil {
@@ -366,6 +366,46 @@ func (b *Builder) tarAndCopy() error {
 	if err != nil {
 		logger.Warn("Fail to walk layers of image...")
 		return err
+	}
+
+	if len(recordedFiles) != 0 {
+		content := ""
+
+		for _, file := range recordedFiles {
+			content += file + " "
+		}
+
+		_, err := os.Create(filepath.Join(mergedPath, "RecordFiles"))
+		if err != nil {
+			logger.Warnf("Fail to create RecordFiles for %v", err)
+		}
+
+		f, err := os.Lstat(filepath.Join(mergedPath, "RecordFiles"))
+		if err != nil {
+			logger.Warnf("Fail to Lstat RecordFiles for %v", err)
+		}
+
+		hd, err := tar.FileInfoHeader(f, "")
+		if err != nil {
+			logger.Warnf("Fail to create tar header for %v", err)
+		}
+
+		hd.Name = "/RecordFiles"
+
+		hd.Size = int64(len(content))
+
+		// write file header info
+		err = tw.WriteHeader(hd)
+		if err != nil {
+			logger.WithField("err", err).Warn("Fail to write header info")
+			return err
+		}
+
+		_, err = tw.Write([]byte(content))
+		if err != nil {
+			logger.WithField("err", err).Warn("Fail to write content...")
+			return err
+		}
 	}
 
 	return nil
