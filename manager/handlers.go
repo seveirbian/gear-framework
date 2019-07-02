@@ -147,27 +147,27 @@ func handlePush(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func handleReport(c echo.Context) error {
-	// 1. 获取镜像名
-	image := c.Param("IMAGE")
-	// 2. 获取文件
-	values, err := c.FormParams()
-	if err != nil {
-		logger.Warnf("Fail to parse files for %v", err)
-	}
+// func handleReport(c echo.Context) error {
+// 	// 1. 获取镜像名
+// 	image := c.Param("IMAGE")
+// 	// 2. 获取文件
+// 	values, err := c.FormParams()
+// 	if err != nil {
+// 		logger.Warnf("Fail to parse files for %v", err)
+// 	}
 
-	files := values["files"]
+// 	files := values["files"]
 
-	v := url.Values{"files": files}
+// 	v := url.Values{"files": files}
 
-	resp, err := http.PostForm("http://"+mgr.MonitorIp+":"+mgr.MonitorPort+"/event/"+image, v)
-	if err != nil {
-		logger.Warnf("Fail to report to manager for %v", err)
-	}
-	defer resp.Body.Close()
+// 	resp, err := http.PostForm("http://"+mgr.MonitorIp+":"+mgr.MonitorPort+"/event/"+image, v)
+// 	if err != nil {
+// 		logger.Warnf("Fail to report to manager for %v", err)
+// 	}
+// 	defer resp.Body.Close()
 
-	return c.NoContent(http.StatusOK)
-}
+// 	return c.NoContent(http.StatusOK)
+// }
 
 
 

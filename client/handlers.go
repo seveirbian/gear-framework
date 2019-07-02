@@ -217,8 +217,8 @@ func handleReport(c echo.Context) error {
 	v := url.Values{"files": files}
 
 	fmt.Println(v)
-	
-	resp, err := http.PostForm("http://"+cli.Manager.IP+":"+cli.Manager.Port+"/report/"+image, v)
+
+	resp, err := http.PostForm("http://"+cli.Manager.IP+":"+"2021"+"/report/"+image, v)
 	if err != nil {
 		logger.Warnf("Fail to report to manager for %v", err)
 	}
