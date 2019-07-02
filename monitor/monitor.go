@@ -93,13 +93,13 @@ func InitMonitor(registry string, managerIp, managerPort string) (*Monitor, erro
 
 func (m *Monitor) Monitor() error {
 	// 启动服务器
-	go m.Server.Start(m.MonitorIp + ":" + m.MonitorPort)
+	go m.Server.Start(":" + m.MonitorPort)
 
 	// 获取待处理的镜像列表
 	for {
 		// m.getRepositories()
 		// m.build()
-		// time.Sleep(maxTime)
+		time.Sleep(maxTime)
 	}
 
 	fmt.Println(m.HaveBeenBuild)
