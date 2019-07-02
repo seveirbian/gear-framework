@@ -42,7 +42,7 @@ func handleEvent(c echo.Context) error {
 	}
 	tag := slices[len(slices)-1]
 
-	res, err := mnt.Client.ImagePush(mnt.Ctx, repo+"-gear"+":"+tag, types.ImagePushOptions{})
+	res, err := mnt.Client.ImagePush(mnt.Ctx, repo+"-gear"+":"+tag, types.ImagePushOptions{RegistryAuth: "123"})
     if err != nil {
     	logger.Warnf("Fail to push images for %v", err)
     }
