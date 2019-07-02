@@ -2,10 +2,12 @@ package monitor
 
 import (
 	"fmt"
+	"strings"
 	"net/http"
 
 	"github.com/labstack/echo"
 	"github.com/seveirbian/gear/build"
+	"github.com/docker/docker/api/types"
 	// gearTypes "github.com/seveirbian/gear/types"
 )
 
@@ -33,8 +35,21 @@ func handleEvent(c echo.Context) error {
 		logger.Fatal("Fail to build gear image...")
 	}
 
-	fmt.Println(image)
-	fmt.Println(files)
+	slices := strings.Split(image, ":")
+	repo := ""
+	for i := 0; i < len(slices) - 1; i++ {
+		repo += slices[i]
+	}
+	tag := slices[len(slices)-1]
+
+	res, err := mnt.Client.ImagePush(mnt.Ctx, repo+"-gear"+":"+tag, types.ImagePushOptions{})
+    if err != nil {
+    	logger.Warnf("Fail to push images for %v", err)
+    }
+
+	// fmt.Println(image)
+	// fmt.Println(files)
+	fmt.Println(res)
 
 	return c.NoContent(http.StatusOK)
 }

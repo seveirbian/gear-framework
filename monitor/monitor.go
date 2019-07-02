@@ -30,6 +30,8 @@ var (
 	maxTime = time.Duration(time.Second*120)
 )
 
+var mnt Monitor = Monitor{}
+
 var AccessedFiles []string
 
 var (
@@ -78,17 +80,17 @@ func InitMonitor(registry string, managerIp, managerPort string) (*Monitor, erro
 	mIp := pkg.GetSelfIp()
 	mPort := "2021"
 
-	return &Monitor{
-		MonitorIp: mIp, 
-		MonitorPort: mPort, 
-		RegistryIp: ip, 
-		RegistryPort: port, 
-		Server: e, 
-		ManagerIp: managerIp, 
-		ManagerPort: managerPort, 
-		Ctx: ctx, 
-		Client: cli, 
-	}, nil
+	mnt.MonitorIp = mIp
+	mnt.MonitorPort = mPort
+	mnt.RegistryIp = ip
+	mnt.RegistryPort = port
+	mnt.Server = e
+	mnt.ManagerIp = managerIp
+	mnt.ManagerPort = managerPort
+	mnt.Ctx = ctx
+	mnt.Client = cli
+
+	return &mnt, nil
 }
 
 func (m *Monitor) Monitor() error {
@@ -263,6 +265,12 @@ func (m *Monitor) do_build(image gearTypes.Image) error {
         logrus.Fatal("Fail to init a pusher to push gear image...")
     }
     pusher.Push()
+
+    _, err = m.Client.ImagePush(m.Ctx, m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+"-gear"+":"+image.Tag, types.ImagePushOptions{})
+    if err != nil {
+    	logger.Warnf("Fail to push images for %v", err)
+    }
+
 
 	return nil
 }
