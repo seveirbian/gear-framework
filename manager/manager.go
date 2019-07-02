@@ -63,7 +63,7 @@ func Init() (*Manager, error) {
     mgr.Nodes = map[uint64]types.Node{}
 
     // 6. Monitor's ip and port
-    mgr.MonitorIp = "127.0.0.1"
+    mgr.MonitorIp = pkg.GetSelfIp()
     mgr.MonitorPort = "2021"
 
     return &mgr, nil
