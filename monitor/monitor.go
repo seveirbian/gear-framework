@@ -72,7 +72,7 @@ func InitMonitor(registry string, managerIp, managerPort string) (*Monitor, erro
 
 	// 创建服务器
 	e := echo.New()
-	e.GET("/event/:IMAGE", handleEvent)
+	e.POST("/event/:IMAGE", handleEvent)
 
 	// 获取本地ip
 	mIp := pkg.GetSelfIp()
