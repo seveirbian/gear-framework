@@ -12,12 +12,18 @@ var (
 )
 
 func handleEvent(c echo.Context) error {
-	path := c.FormValue("path")
-	hash := c.FormValue("hash")
+	// 1. 获取镜像名
+	image := c.Param("IMAGE")
+	// 2. 获取文件
+	values, err := c.FormParams()
+	if err != nil {
+		logger.Warnf("Fail to parse files for %v", err)
+	}
 
-	fmt.Println(path, hash)
+	files := values["files"]
 
-	AccessedFiles = append(AccessedFiles, path)
+	fmt.Println(image)
+	fmt.Println(files)
 
 	return c.NoContent(http.StatusOK)
 }

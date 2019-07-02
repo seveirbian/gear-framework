@@ -27,7 +27,7 @@ import (
 
 var (
 	logger = logrus.WithField("gear", "monitor")
-	maxTime = time.Duration(time.Second*60)
+	maxTime = time.Duration(time.Second*120)
 )
 
 var AccessedFiles []string
@@ -72,7 +72,7 @@ func InitMonitor(registry string, managerIp, managerPort string) (*Monitor, erro
 
 	// 创建服务器
 	e := echo.New()
-	e.GET("/event", handleEvent)
+	e.GET("/event/:IMAGE", handleEvent)
 
 	// 获取本地ip
 	mIp := pkg.GetSelfIp()
@@ -96,9 +96,11 @@ func (m *Monitor) Monitor() error {
 	go m.Server.Start(m.MonitorIp + ":" + m.MonitorPort)
 
 	// 获取待处理的镜像列表
-	m.getRepositories()
-
-	m.build()
+	for {
+		// m.getRepositories()
+		// m.build()
+		// time.Sleep(maxTime)
+	}
 
 	fmt.Println(m.HaveBeenBuild)
 	fmt.Println(m.ToBeBuild)

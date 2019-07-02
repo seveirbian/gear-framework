@@ -4,6 +4,7 @@ import (
 	"os"
 	"io"
 	"fmt"
+	"net/url"
 	// "syscall"
 	"path/filepath"
 	"strconv"
@@ -157,8 +158,13 @@ func handleReport(c echo.Context) error {
 
 	files := values["files"]
 
-	fmt.Println(image)
-	fmt.Println(files)
+	v := url.Values{"files": files}
+
+	resp, err := http.PostForm("http://"+mgr.MonitorIp+":"+mgr.MonitorPort+"/event/"+image, v)
+	if err != nil {
+		logger.Warnf("Fail to report to manager for %v", err)
+	}
+	defer resp.Body.Close()
 
 	return c.NoContent(http.StatusOK)
 }

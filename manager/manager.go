@@ -28,6 +28,9 @@ type Manager struct {
 
     NodesMu sync.RWMutex
     Nodes map[uint64]types.Node
+
+    MonitorIp string
+    MonitorPort string
 }
 
 func Init() (*Manager, error) {
@@ -58,6 +61,10 @@ func Init() (*Manager, error) {
     mgr.Echo = e
     mgr.NodesMu = sync.RWMutex{}
     mgr.Nodes = map[uint64]types.Node{}
+
+    // 6. Monitor's ip and port
+    mgr.MonitorIp = "127.0.0.1"
+    mgr.MonitorPort = "2021"
 
     return &mgr, nil
 } 
