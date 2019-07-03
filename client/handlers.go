@@ -80,18 +80,18 @@ func handleGet(c echo.Context) error {
 	cidPath := c.FormValue("PATH")
 
 	// 1. 搜索所有集群节点，找到最优节点获取文件
-	cidInUint64, _ := strconv.ParseUint(cid, 10, 64)
-	var distance uint64 = cidInUint64 ^ cli.Self.ID
-	candidata := cli.Self
+	// cidInUint64, _ := strconv.ParseUint(cid, 10, 64)
+	// var distance uint64 = cidInUint64 ^ cli.Self.ID
+	// candidata := cli.Self
 
-	cli.NodesMu.RLock()
-	for cliId, client := range(cli.Nodes) {
-		if distance > (cidInUint64 ^ cliId) {
-			distance = cidInUint64 ^ cliId
-			candidata = client
-		}
-	}
-	cli.NodesMu.RUnlock()
+	// cli.NodesMu.RLock()
+	// for cliId, client := range(cli.Nodes) {
+	// 	if distance > (cidInUint64 ^ cliId) {
+	// 		distance = cidInUint64 ^ cliId
+	// 		candidata = client
+	// 	}
+	// }
+	// cli.NodesMu.RUnlock()
 
 	// 2. 确认本地是否存在文件
 	_, err := os.Lstat(filepath.Join("/var/lib/gear/public", cid))
@@ -112,10 +112,10 @@ func handleGet(c echo.Context) error {
 		return c.NoContent(http.StatusOK)
 	}
 
-	// 3. 请求对应节点并下载文件
-	resp, err := http.PostForm("http://"+candidata.IP+":"+candidata.Port+"/download/"+cid, url.Values{})
+	// 从manager节点下载cid文件
+	resp, err := http.PostForm("http://"+cli.Manager.IP+":"+cli.Manager.Port+"/pull/"+cid, url.Values{})
 	if err != nil {
-		logger.Fatal("Fail to download file for %v...", err)
+		logger.Warnf("Fail to pull from manager for %v", err)
 	}
 	defer resp.Body.Close()
 

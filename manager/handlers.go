@@ -6,6 +6,7 @@ import (
 	"fmt"
 	// "net/url"
 	// "syscall"
+	"time"
 	"math/rand"
 	"archive/tar"
 	"io/ioutil"
@@ -158,7 +159,10 @@ func handlePreFetch(c echo.Context) error {
 
 	files := values["files"]
 
-	tmpFileName := string(rand.Intn(100))
+	rand.Seed(time.Now().Unix())
+	tmpFileName := string(rand.Int())
+
+	fmt.Println(tmpFileName)
 
 	defer os.Remove(filepath.Join(GearStoragePath, tmpFileName))
 

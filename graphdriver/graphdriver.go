@@ -52,7 +52,7 @@ var (
 
 var (
 	// 监控gearfs的时间
-	monitorTime = 20
+	monitorTime = 240
 )
 
 var (

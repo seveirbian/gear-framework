@@ -171,6 +171,7 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 			values := string(b)
 
 			files := strings.Split(values, " ")
+			files = files[0:len(files)-1]
 
 			needToDownloadFiles := []string{}
 
@@ -181,7 +182,10 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 				}
 			}
 
-			v := url.Values{"files": files}
+			fmt.Println(needToDownloadFiles)
+
+			v := url.Values{"files": needToDownloadFiles}
+
 
 			resp, err := http.PostForm("http://"+managerIp+":"+managerPort+"/prefetch", v)
 			if err != nil {
