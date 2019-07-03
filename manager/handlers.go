@@ -160,7 +160,7 @@ func handlePreFetch(c echo.Context) error {
 	files := values["files"]
 
 	rand.Seed(time.Now().Unix())
-	tmpFileName := string(rand.Int())
+	tmpFileName := strconv.Itoa(rand.Int())
 
 	fmt.Println(tmpFileName)
 

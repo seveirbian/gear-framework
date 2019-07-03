@@ -239,6 +239,8 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 				if err != nil {
 					logger.Warnf("Fail to chmod file for %v", err)
 				}
+
+				fmt.Println(th.Name)
 			}
 
 			f.Close()
