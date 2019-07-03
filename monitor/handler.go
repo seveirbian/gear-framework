@@ -46,10 +46,11 @@ func handleEvent(c echo.Context) error {
     if err != nil {
     	logger.Warnf("Fail to push images for %v", err)
     }
+    defer res.Close()
 
 	// fmt.Println(image)
 	// fmt.Println(files)
-	fmt.Println(res)
+	fmt.Println("Push ok!")
 
 	return c.NoContent(http.StatusOK)
 }

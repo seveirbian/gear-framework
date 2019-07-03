@@ -93,19 +93,8 @@ func handleGet(c echo.Context) error {
 	}
 	cli.NodesMu.RUnlock()
 
-	// 2. 请求对应节点并下载文件
-	resp, err := http.PostForm("http://"+candidata.IP+":"+candidata.Port+"/download/"+cid, url.Values{})
-	if err != nil {
-		logger.Fatal("Fail to download file for %v...", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return c.NoContent(resp.StatusCode)
-	}
-
-	// *确认本地是否存在文件
-	_, err = os.Lstat(filepath.Join("/var/lib/gear/public", cid))
+	// 2. 确认本地是否存在文件
+	_, err := os.Lstat(filepath.Join("/var/lib/gear/public", cid))
 	if err == nil {
 		// 跳过下载步骤
 		// 创建硬连接到镜像私有缓存目录下
@@ -123,7 +112,17 @@ func handleGet(c echo.Context) error {
 		return c.NoContent(http.StatusOK)
 	}
 
-	// 3. 下载文件
+	// 3. 请求对应节点并下载文件
+	resp, err := http.PostForm("http://"+candidata.IP+":"+candidata.Port+"/download/"+cid, url.Values{})
+	if err != nil {
+		logger.Fatal("Fail to download file for %v...", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return c.NoContent(resp.StatusCode)
+	}
+
 	f, err := os.Create(filepath.Join("/var/lib/gear/public", cid))
 	if err != nil {
 		logger.Fatalf("Fail to create file for %V", err)

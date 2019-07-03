@@ -6,6 +6,9 @@ import (
 	"fmt"
 	// "net/url"
 	// "syscall"
+	"math/rand"
+	"archive/tar"
+	"io/ioutil"
 	"path/filepath"
 	"strconv"
 	"net/http"
@@ -145,6 +148,65 @@ func handlePush(c echo.Context) error {
 
 	// storage已经有cid文件，直接返回
 	return c.NoContent(http.StatusOK)
+}
+
+func handlePreFetch(c echo.Context) error {
+	values, err := c.FormParams()
+	if err != nil {
+		logger.Warnf("Fail to get form params for %v", err)
+	}
+
+	files := values["files"]
+
+	tmpFileName := string(rand.Intn(100))
+
+	defer os.Remove(filepath.Join(GearStoragePath, tmpFileName))
+
+	tmpFile, err := os.Create(filepath.Join(GearStoragePath, tmpFileName))
+	if err != nil {
+		logger.Warnf("Fail to create file for %v", err)
+	}
+	defer tmpFile.Close()
+
+	tw := tar.NewWriter(tmpFile)
+	defer tw.Close()
+
+	for _, file := range files {
+		f, err := os.Stat(filepath.Join(GearStoragePath, file))
+		if err != nil {
+			logger.Warnf("Fail to stat file for %v", err)
+		}
+
+		hd, err := tar.FileInfoHeader(f, "")
+		if err != nil {
+			logger.Warn("Fail to get file head...")
+			return err
+		}
+
+		err = tw.WriteHeader(hd)
+		if err != nil {
+			logger.WithField("err", err).Warn("Fail to write header info")
+			return err
+		}
+
+		b, err := ioutil.ReadFile(filepath.Join(GearStoragePath, file))
+		if err != nil {
+			logger.Warnf("Fail to read file for %v", err)
+		}
+
+		_, err = tw.Write(b)
+		if err != nil {
+			logger.WithField("err", err).Warn("Fail to write content...")
+			return err
+		}
+	}
+
+	err = c.Attachment(filepath.Join(GearStoragePath, tmpFileName), tmpFileName)
+	if err != nil {
+		logger.Fatal("Fail to return file...")
+	}
+	
+	return nil
 }
 
 // func handleReport(c echo.Context) error {

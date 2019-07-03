@@ -2,11 +2,13 @@ package fs
 
 import (
 	"os"
-	// "io"
+	"io"
 	"fmt"
+	"archive/tar"
 	// "time"
 	// "errors"
 	// "reflect"
+	"strings"
 	"syscall"
 	"net/url"
 	"net/http"
@@ -24,6 +26,9 @@ import (
 var (
 	monitorFlag = false
 	logger = logrus.WithField("fs", "gearFS")
+
+	GearPath             = "/var/lib/gear/"
+	GearPublicCachePath  = filepath.Join(GearPath, "public")
 )
 
 type GearFS struct {
@@ -32,6 +37,9 @@ type GearFS struct {
 	IndexImagePath string
 	PrivateCachePath string
 	UpperPath string
+
+	ManagerIp string
+	ManagerPort string
 }
 
 func (g * GearFS) Start() {
@@ -75,7 +83,7 @@ func (g * GearFS) Start() {
 	}(c)
 
 	// 4. 初始化fuse文件系统
-	filesys := Init(indexImagePath, privateCachePath, upperPath)
+	filesys := Init(indexImagePath, privateCachePath, upperPath, g.ManagerIp, g.ManagerPort)
 
 	// 5. 使用fuse文件系统服务挂载点的fuse连接
 	if err := fuseFS.Serve(c, filesys); err != nil {
@@ -132,7 +140,7 @@ func (g * GearFS) StartAndNotify(notify chan int, monitor bool) {
 	}(c)
 
 	// 4. 初始化fuse文件系统
-	filesys := Init(indexImagePath, privateCachePath, upperPath)
+	filesys := Init(indexImagePath, privateCachePath, upperPath, g.ManagerIp, g.ManagerPort)
 
 	// 5. 使用fuse文件系统服务挂载点的fuse连接
 	notify <- 1
@@ -146,7 +154,103 @@ func (g * GearFS) StartAndNotify(notify chan int, monitor bool) {
 	}
 }
 
-func Init(indexImagePath, privateCachePath, upperPath string) *FS {
+func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort string) *FS {
+	// 对第二次启动实现加速
+	// 1. 首先判断在gear-diff目录下是否存在RecordFiles文件
+	_, err := os.Lstat(filepath.Join(indexImagePath, "RecordFiles"))
+	if err != nil {
+		// 不存在
+	}else {
+		// 存在
+		_, err := os.Lstat(filepath.Join(indexImagePath, "prefetched"))
+		if err != nil {
+			b, err := ioutil.ReadFile(filepath.Join(indexImagePath, "RecordFiles"))
+			if err != nil {
+				logger.Warnf("Fail to read file for %v", err)
+			}
+			values := string(b)
+
+			files := strings.Split(values, " ")
+
+			needToDownloadFiles := []string{}
+
+			for _, file := range files {
+				_, err := os.Lstat(filepath.Join(GearPublicCachePath, file))
+				if err != nil {
+					needToDownloadFiles = append(needToDownloadFiles, file)
+				}
+			}
+
+			v := url.Values{"files": files}
+
+			resp, err := http.PostForm("http://"+managerIp+":"+managerPort+"/prefetch", v)
+			if err != nil {
+				logger.Warnf("Fail to prefetch for %v", err)
+			}
+			defer resp.Body.Close()
+
+			f, err := os.Create(filepath.Join(GearPublicCachePath, "tmp"))
+			if err != nil {
+				logger.Fatalf("Fail to create tmp file for %V", err)
+			}
+
+			_, err = io.Copy(f, resp.Body)
+			if err != nil {
+				logger.Fatalf("Fail to copy for %v", err)
+			}
+
+			f.Close()
+
+			f, err = os.Open(filepath.Join(GearPublicCachePath, "tmp"))
+			if err != nil {
+				logger.Warnf("Fail to open file for %v", err)
+			}
+
+			tr := tar.NewReader(f)
+
+			for {
+				th, err := tr.Next()
+				if err == io.EOF {
+					break;
+				}
+
+				tgt, err := os.Create(filepath.Join(GearPublicCachePath, th.Name))
+				if err != nil {
+					logger.Warnf("Fail to create tgt file for %v", err)
+				}
+				defer tgt.Close()
+
+				_, err = io.Copy(tgt, tr)
+				if err != nil {
+					logger.Warnf("Fail to copy for %v", err)
+				}
+
+				err = os.Link(filepath.Join(GearPublicCachePath, th.Name), filepath.Join(privateCachePath, th.Name))
+				if err != nil {
+					logger.Fatalf("Fail to create hard link for %v", err)
+				}
+
+				// 设置文件权限
+				err = os.Chmod(filepath.Join(privateCachePath, th.Name), 0777)
+				if err != nil {
+					logger.Warnf("Fail to chmod file for %v", err)
+				}
+			}
+
+			f.Close()
+
+			err = os.Remove(filepath.Join(GearPublicCachePath, "tmp"))
+			if err != nil {
+				logger.Warnf("Fail to remove tmp file for %v", err)
+			}
+
+			_, err = os.Create(filepath.Join(indexImagePath, "prefetched"))
+			if err != nil {
+				logger.Warnf("Fail to create file for %v", err)
+			}
+		}
+	}
+
 	return &FS{
 		IndexImagePath: indexImagePath,
 		PrivateCachePath: privateCachePath, 

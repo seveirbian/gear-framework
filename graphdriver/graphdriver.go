@@ -92,7 +92,8 @@ type Driver struct {
 	locker           *locker.Locker
 	dockerDriver     graphdriver.Driver
 
-	MonitorServer    string
+	ManagerIp        string
+	ManagerPort      string
 }
 
 var (
@@ -242,6 +243,9 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 				IndexImagePath: gearGearDir, 
 				PrivateCachePath: gearImagePrivateCache, 
 				UpperPath: filepath.Join(d.home, id, "diff"), 
+
+				ManagerIp: d.ManagerIp, 
+				ManagerPort: d.ManagerPort, 
 			}
 
 			notify := make(chan int)
