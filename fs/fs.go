@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"archive/tar"
 	"compress/gzip"
-	// "time"
+	"time"
 	// "errors"
 	// "reflect"
 	"strings"
@@ -163,6 +163,8 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 		// 不存在
 	}else {
 		// 存在
+		t := time.Now()
+
 		_, err := os.Lstat(filepath.Join(indexImagePath, "prefetched"))
 		if err != nil {
 			b, err := ioutil.ReadFile(filepath.Join(indexImagePath, "RecordFiles"))
@@ -278,6 +280,8 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 			if err != nil {
 				logger.Warnf("Fail to create file for %v", err)
 			}
+
+			fmt.Println("Time used: ", time.Since(t))
 		}
 	}
 
@@ -332,9 +336,9 @@ func (d *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
 	attr.Gid = dirInfo.Sys().(*syscall.Stat_t).Gid
 	attr.BlockSize = uint32(dirInfo.Sys().(*syscall.Stat_t).Blksize)
 
-	fmt.Println("\nd.Getattr")
-	fmt.Println("d< ", d.relativePath, " >")
-	fmt.Println("d.Attr< ", attr, " >")
+	// fmt.Println("\nd.Getattr")
+	// fmt.Println("d< ", d.relativePath, " >")
+	// fmt.Println("d.Attr< ", attr, " >")
 
 	return nil
 }
@@ -441,9 +445,9 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 		attr.Uid = upperFileInfo.Sys().(*syscall.Stat_t).Uid
 		attr.Gid = upperFileInfo.Sys().(*syscall.Stat_t).Gid
 		attr.BlockSize = uint32(upperFileInfo.Sys().(*syscall.Stat_t).Blksize)
-		fmt.Println("\nf.Getattr")
-		fmt.Println("f< ", f.relativePath, " >")
-		fmt.Print("f.attr< ", attr, ">\n")
+		// fmt.Println("\nf.Getattr")
+		// fmt.Println("f< ", f.relativePath, " >")
+		// fmt.Print("f.attr< ", attr, ">\n")
 		return nil
 	}
 
@@ -515,9 +519,9 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 		attr.BlockSize = uint32(IndexFileInfo.Sys().(*syscall.Stat_t).Blksize)
 	}
 
-	fmt.Println("\nf.Attr")
-	fmt.Println("f< ", f.relativePath, " >")
-	fmt.Println("f.Attr< ", attr, " >")
+	// fmt.Println("\nf.Attr")
+	// fmt.Println("f< ", f.relativePath, " >")
+	// fmt.Println("f.Attr< ", attr, " >")
 
 	go func() {
 		if monitorFlag {

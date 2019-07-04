@@ -209,6 +209,8 @@ func handlePreFetch(c echo.Context) error {
 	tw.Close()
 	tmpFile.Close()
 
+	fmt.Println("tar time: ", time.Since(t))
+
 	// 再压缩，使用gzip
 	gzipFile, err := os.Create(filepath.Join(GearStoragePath, tmpFileName+"gzip"))
 	if err != nil {
