@@ -153,6 +153,8 @@ func handlePush(c echo.Context) error {
 }
 
 func handlePreFetch(c echo.Context) error {
+	t := time.Now()
+
 	values, err := c.FormParams()
 	if err != nil {
 		logger.Warnf("Fail to get form params for %v", err)
@@ -232,6 +234,8 @@ func handlePreFetch(c echo.Context) error {
 	if err != nil {
 		logger.Fatal("Fail to return file...")
 	}
+
+	fmt.Println("Time used: ", time.Since(t))
 	
 	return nil
 }
