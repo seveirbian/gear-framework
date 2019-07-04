@@ -5,7 +5,7 @@ import (
 	"io"
 	"fmt"
 	"archive/tar"
-	"compress/gzip"
+	gzip "github.com/klauspost/pgzip"
 	"time"
 	// "errors"
 	// "reflect"
@@ -30,6 +30,9 @@ var (
 
 	GearPath             = "/var/lib/gear/"
 	GearPublicCachePath  = filepath.Join(GearPath, "public")
+
+	ManagerIp   string
+	ManagerPort string
 )
 
 type GearFS struct {
@@ -41,6 +44,8 @@ type GearFS struct {
 
 	ManagerIp string
 	ManagerPort string
+
+	MonitorChannel chan string
 }
 
 func (g * GearFS) Start() {
@@ -156,6 +161,8 @@ func (g * GearFS) StartAndNotify(notify chan int, monitor bool) {
 }
 
 func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort string) *FS {
+	ManagerIp = managerIp
+	ManagerPort = managerPort
 	// 对第二次启动实现加速
 	// 1. 首先判断在gear-diff目录下是否存在RecordFiles文件
 	_, err := os.Lstat(filepath.Join(indexImagePath, "RecordFiles"))
@@ -185,8 +192,6 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 				}
 			}
 
-			fmt.Println(needToDownloadFiles)
-
 			v := url.Values{"files": needToDownloadFiles}
 
 
@@ -197,25 +202,25 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 			defer resp.Body.Close()
 
 			// 先解压
-			// gFile, err := os.Create(filepath.Join(GearPublicCachePath, "tmpgzip"))
-			// if err != nil {
-			// 	logger.Warnf("Fail to create tmpgzip for %v", err)
-			// }
+			gFile, err := os.Create(filepath.Join(GearPublicCachePath, "tmpgzip"))
+			if err != nil {
+				logger.Warnf("Fail to create tmpgzip for %v", err)
+			}
 
-			// _, err = io.Copy(gFile, resp.Body)
-			// if err != nil {
-			// 	logger.Warnf("Fail to copy gzipFile for %v", err)
-			// }
+			_, err = io.Copy(gFile, resp.Body)
+			if err != nil {
+				logger.Warnf("Fail to copy gzipFile for %v", err)
+			}
 
-			// gFile.Close()
+			gFile.Close()
 
-			// g, err := os.Open(filepath.Join(GearPublicCachePath, "tmpgzip"))
-			// if err != nil {
-			// 	logger.Warnf("Fail to open gzip for %v", err)
-			// }
-			// defer g.Close()
+			g, err := os.Open(filepath.Join(GearPublicCachePath, "tmpgzip"))
+			if err != nil {
+				logger.Warnf("Fail to open gzip for %v", err)
+			}
+			defer g.Close()
 
-			gr, err := gzip.NewReader(resp.Body)
+			gr, err := gzip.NewReader(g)
 			if err != nil {
 				logger.Warnf("Fail to new reader gzip for %v", err)
 			}
@@ -265,8 +270,6 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 				if err != nil {
 					logger.Warnf("Fail to chmod file for %v", err)
 				}
-
-				fmt.Println(th.Name)
 			}
 
 			f.Close()
@@ -463,10 +466,45 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 		// 检测private cache中是否存在该文件
 		_, err = os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 		if err != nil {
-			_, err := http.PostForm("http://localhost:2020"+"/get/"+f.privateCacheName, url.Values{"PATH":{f.privateCachePath}, "PERM":{"0777"}})
-			if err != nil {
-				logger.Warnf("Fail to get file for %v", err)
+			// 检测public cache中是否存在该文件
+			_, err := os.Lstat(filepath.Join("/var/lib/gear/public", f.privateCacheName))
+			if err == nil {
+				// 跳过下载步骤
+				// 创建硬连接到镜像私有缓存目录下
+				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+				if err != nil {
+					logger.Fatalf("Fail to create hard link for %v", err)
+				}
+			} else {
+				// 从manager节点下载cid文件
+				resp, err := http.PostForm("http://"+ManagerIp+":"+ManagerPort+"/pull/"+f.privateCacheName, url.Values{})
+				if err != nil {
+					logger.Warnf("Fail to pull from manager for %v", err)
+				}
+				defer resp.Body.Close()
+
+				if resp.StatusCode != http.StatusOK {
+					logger.Warnf("Fail to pull file")
+				}
+
+				tgt, err := os.Create(filepath.Join("/var/lib/gear/public", f.privateCacheName))
+				if err != nil {
+					logger.Fatalf("Fail to create file for %V", err)
+				}
+				defer tgt.Close()
+
+				_, err = io.Copy(tgt, resp.Body)
+				if err != nil {
+					logger.Fatalf("Fail to copy for %v", err)
+				}
+
+				// 4. 创建硬连接到镜像私有缓存目录下
+				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+				if err != nil {
+					logger.Fatalf("Fail to create hard link for %v", err)
+				}
 			}
+
 			// 修改文件的权限
 			IndexFileInfo, err := os.Lstat(filepath.Join(f.indexImagePath, f.relativePath))
 			if err != nil {
@@ -566,11 +604,45 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 		// 1. 检查该镜像的私有缓存中是否存在cid文件
 		_, err := os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 		if err != nil {
-			// 该当前私有缓存中不存在cid文件，向gear client请求将cid文件下载到指定目录
-			_, err := http.PostForm("http://localhost:2020"+"/get/"+f.privateCacheName, url.Values{"PATH":{f.privateCachePath}, "PERM":{"0777"}})
-			if err != nil {
-				logger.Warnf("Fail to get file for %v", err)
+			// 检测public cache中是否存在该文件
+			_, err := os.Lstat(filepath.Join("/var/lib/gear/public", f.privateCacheName))
+			if err == nil {
+				// 跳过下载步骤
+				// 创建硬连接到镜像私有缓存目录下
+				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+				if err != nil {
+					logger.Fatalf("Fail to create hard link for %v", err)
+				}
+			} else {
+				// 从manager节点下载cid文件
+				resp, err := http.PostForm("http://"+ManagerIp+":"+ManagerPort+"/pull/"+f.privateCacheName, url.Values{})
+				if err != nil {
+					logger.Warnf("Fail to pull from manager for %v", err)
+				}
+				defer resp.Body.Close()
+
+				if resp.StatusCode != http.StatusOK {
+					logger.Warnf("Fail to pull file")
+				}
+
+				tgt, err := os.Create(filepath.Join("/var/lib/gear/public", f.privateCacheName))
+				if err != nil {
+					logger.Fatalf("Fail to create file for %V", err)
+				}
+				defer tgt.Close()
+
+				_, err = io.Copy(tgt, resp.Body)
+				if err != nil {
+					logger.Fatalf("Fail to copy for %v", err)
+				}
+
+				// 4. 创建硬连接到镜像私有缓存目录下
+				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+				if err != nil {
+					logger.Fatalf("Fail to create hard link for %v", err)
+				}
 			}
+
 			// 修改文件的权限
 			IndexFileInfo, err := os.Lstat(filepath.Join(f.indexImagePath, f.relativePath))
 			if err != nil {

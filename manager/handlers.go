@@ -7,7 +7,7 @@ import (
 	// "net/url"
 	// "syscall"
 	"time"
-	"compress/gzip"
+	gzip "github.com/klauspost/pgzip"
 	"math/rand"
 	"archive/tar"
 	"io/ioutil"
