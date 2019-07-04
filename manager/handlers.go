@@ -7,6 +7,7 @@ import (
 	// "net/url"
 	// "syscall"
 	"time"
+	"compress/gzip"
 	"math/rand"
 	"archive/tar"
 	"io/ioutil"
@@ -170,10 +171,8 @@ func handlePreFetch(c echo.Context) error {
 	if err != nil {
 		logger.Warnf("Fail to create file for %v", err)
 	}
-	defer tmpFile.Close()
 
 	tw := tar.NewWriter(tmpFile)
-	defer tw.Close()
 
 	for _, file := range files {
 		f, err := os.Stat(filepath.Join(GearStoragePath, file))
@@ -205,7 +204,31 @@ func handlePreFetch(c echo.Context) error {
 		}
 	}
 
-	err = c.Attachment(filepath.Join(GearStoragePath, tmpFileName), tmpFileName)
+	tw.Close()
+	tmpFile.Close()
+
+	// 再压缩，使用gzip
+	gzipFile, err := os.Create(filepath.Join(GearStoragePath, tmpFileName+"gzip"))
+	if err != nil {
+		logger.Warnf("Fail to create gzip file for %v", err)
+	}
+
+	gw := gzip.NewWriter(gzipFile)
+
+	tarContent, err := ioutil.ReadFile(filepath.Join(GearStoragePath, tmpFileName))
+	if err != nil {
+		logger.Warnf("Fail to read tmp file for %v", err)
+	}
+
+	_, err = gw.Write(tarContent)
+	if err != nil {
+		logger.Warnf("Fail to write gzip file for %v", err)
+	}
+
+	gw.Close()
+	gzipFile.Close()
+
+	err = c.Attachment(filepath.Join(GearStoragePath, tmpFileName+"gzip"), tmpFileName+"gzip")
 	if err != nil {
 		logger.Fatal("Fail to return file...")
 	}

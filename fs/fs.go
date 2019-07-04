@@ -5,6 +5,7 @@ import (
 	"io"
 	"fmt"
 	"archive/tar"
+	"compress/gzip"
 	// "time"
 	// "errors"
 	// "reflect"
@@ -193,19 +194,42 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 			}
 			defer resp.Body.Close()
 
-			f, err := os.Create(filepath.Join(GearPublicCachePath, "tmp"))
+			// 先解压
+			gFile, err := os.Create(filepath.Join(GearPublicCachePath, "tmpgzip"))
 			if err != nil {
-				logger.Fatalf("Fail to create tmp file for %V", err)
+				logger.Warnf("Fail to create tmpgzip for %v", err)
 			}
 
-			_, err = io.Copy(f, resp.Body)
+			_, err = io.Copy(gFile, resp.Body)
 			if err != nil {
-				logger.Fatalf("Fail to copy for %v", err)
+				logger.Warnf("Fail to copy gzipFile for %v", err)
 			}
 
-			f.Close()
+			gFile.Close()
 
-			f, err = os.Open(filepath.Join(GearPublicCachePath, "tmp"))
+			g, err := os.Open(filepath.Join(GearPublicCachePath, "tmpgzip"))
+			if err != nil {
+				logger.Warnf("Fail to open gzip for %v", err)
+			}
+			defer g.Close()
+
+			gr, err := gzip.NewReader(g)
+			if err != nil {
+				logger.Warnf("Fail to new reader gzip for %v", err)
+			}
+			defer gr.Close()
+
+			gContent, err := ioutil.ReadAll(gr)
+			if err != nil {
+				logger.Warnf("Fail to read gzip content for %v", err)
+			}
+
+			err = ioutil.WriteFile(filepath.Join(GearPublicCachePath, "tmp"), gContent, 0777)
+			if err != nil {
+				logger.Fatalf("Fail to write tmp file for %v", err)
+			}
+
+			f, err := os.Open(filepath.Join(GearPublicCachePath, "tmp"))
 			if err != nil {
 				logger.Warnf("Fail to open file for %v", err)
 			}
