@@ -33,6 +33,8 @@ var (
 
 	ManagerIp   string
 	ManagerPort string
+
+	RecordChan chan string
 )
 
 type GearFS struct {
@@ -45,7 +47,7 @@ type GearFS struct {
 	ManagerIp string
 	ManagerPort string
 
-	MonitorChannel chan string
+	RecordChan chan string
 }
 
 func (g * GearFS) Start() {
@@ -89,7 +91,7 @@ func (g * GearFS) Start() {
 	}(c)
 
 	// 4. 初始化fuse文件系统
-	filesys := Init(indexImagePath, privateCachePath, upperPath, g.ManagerIp, g.ManagerPort)
+	filesys := Init(indexImagePath, privateCachePath, upperPath, g.ManagerIp, g.ManagerPort, g.RecordChan)
 
 	// 5. 使用fuse文件系统服务挂载点的fuse连接
 	if err := fuseFS.Serve(c, filesys); err != nil {
@@ -146,7 +148,7 @@ func (g * GearFS) StartAndNotify(notify chan int, monitor bool) {
 	}(c)
 
 	// 4. 初始化fuse文件系统
-	filesys := Init(indexImagePath, privateCachePath, upperPath, g.ManagerIp, g.ManagerPort)
+	filesys := Init(indexImagePath, privateCachePath, upperPath, g.ManagerIp, g.ManagerPort, g.RecordChan)
 
 	// 5. 使用fuse文件系统服务挂载点的fuse连接
 	notify <- 1
@@ -160,9 +162,10 @@ func (g * GearFS) StartAndNotify(notify chan int, monitor bool) {
 	}
 }
 
-func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort string) *FS {
+func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort string, rChan chan string) *FS {
 	ManagerIp = managerIp
 	ManagerPort = managerPort
+	RecordChan = rChan
 	// 对第二次启动实现加速
 	// 1. 首先判断在gear-diff目录下是否存在RecordFiles文件
 	_, err := os.Lstat(filepath.Join(indexImagePath, "RecordFiles"))
@@ -181,7 +184,15 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 			values := string(b)
 
 			files := strings.Split(values, " ")
-			files = files[0:len(files)-1]
+
+			tmp := []string{}
+			for _, file := range files {
+				if file != "" {
+					tmp = append(tmp, file)
+				}
+			}
+
+			files = tmp
 
 			needToDownloadFiles := []string{}
 
@@ -563,15 +574,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 
 	go func() {
 		if monitorFlag {
-			image, err := os.Readlink(filepath.Join(f.indexImagePath, "gear-image"))
-			if err != nil {
-				logger.Warnf("Fail to readlink for %v", err)
-			}
-			resp, err := http.PostForm("http://localhost:2020/record/"+image+"/"+f.privateCacheName, url.Values{})
-			if err != nil {
-				logger.Warnf("Fail to post for %v", err)
-			}
-			defer resp.Body.Close()
+			RecordChan <- f.privateCacheName
 		}
 	}()
 
@@ -676,15 +679,7 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 
 	go func() {
 		if monitorFlag {
-			image, err := os.Readlink(filepath.Join(f.indexImagePath, "gear-image"))
-			if err != nil {
-				logger.Warnf("Fail to readlink for %v", err)
-			}
-			resp, err := http.PostForm("http://localhost:2020/record/"+image+"/"+f.privateCacheName, url.Values{})
-			if err != nil {
-				logger.Warnf("Fail to post for %v", err)
-			}
-			defer resp.Body.Close()
+			RecordChan <- f.privateCacheName
 		}
 	}()
 	

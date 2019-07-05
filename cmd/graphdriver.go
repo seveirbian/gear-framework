@@ -11,11 +11,16 @@ var graphdriverUsage = `Usage:  gear graphdriver
 
 Options:
   -m, --manager-ip          Manager node's ip address
-  -p, --manager-port        Manager node's port(default 2019)`
+  -p, --manager-port        Manager node's port(default 2019)
+  -t, --monitor-ip          Monitor node's ip address
+      --monitor-port        Monitor node's port(default 2021)
+  `
 
 var (
 	driverManagerIp string
 	driverManagerPort string
+	driverMonitorIp string
+	driverMonitorPort string
 )
 
 func init() {
@@ -24,6 +29,9 @@ func init() {
 	graphdriverCmd.Flags().StringVarP(&driverManagerIp, "manager-ip", "m", "", "Manager node's ip address")
 	graphdriverCmd.MarkFlagRequired("manager-ip")
 	graphdriverCmd.Flags().StringVarP(&driverManagerPort, "manager-port", "p", "2019", "Manager node's port")
+	graphdriverCmd.Flags().StringVarP(&driverMonitorIp, "monitor-ip", "t", "", "Monitor node's ip address")
+	graphdriverCmd.MarkFlagRequired("monitor-ip")
+	graphdriverCmd.Flags().StringVarP(&driverMonitorPort, "monitor-port", "", "2021", "Monitor node's port")
 	
 }
 
@@ -36,6 +44,8 @@ var graphdriverCmd = &cobra.Command{
 		gearGraphDriver := &gearDriver.Driver{
 			ManagerIp: driverManagerIp, 
 			ManagerPort: driverManagerPort, 
+			MonitorIp: driverMonitorIp, 
+			MonitorPort: driverMonitorPort, 
 		}
 		h := graphdriver.NewHandler(gearGraphDriver)
 

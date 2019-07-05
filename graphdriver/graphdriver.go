@@ -94,6 +94,8 @@ type Driver struct {
 
 	ManagerIp        string
 	ManagerPort      string
+	MonitorIp        string
+	MonitorPort      string
 }
 
 var (
@@ -197,7 +199,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 	fmt.Printf("  id: %s\n", id)
 	fmt.Printf("  mountlabel: %s\n", mountLabel)
 
-	// 1. 检测孩子的目录中是否有gear-lower
+	// 1. 检测目录中是否有gear-lower
 	path := filepath.Join(d.home, id, "gear-lower")
 	gearPath, err := os.Readlink(path)
 	if err != nil {
@@ -236,6 +238,47 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 					logger.Warnf("Fail to create image private cache dir for %v", err)
 				}
 			}
+			
+			// 判断是否需要监控gearfs
+			needMonitor := false
+
+			recordFilesChan := make(chan string, 100)
+
+			_, err = os.Lstat(filepath.Join(gearPath, "gear-diff", "RecordFiles"))
+			if err != nil {
+				// 需要监控该镜像
+				logger.Warnf("Monitoring...")
+				needMonitor = true
+
+				recordFiles := []string{}
+
+				go func() {
+					t := time.NewTimer(time.Duration(monitorTime) * time.Second)
+
+					for {
+						select {
+						case file := <- recordFilesChan:
+							recordFiles = append(recordFiles, file)
+						case <- t.C:
+							// 向manager汇报
+							v := url.Values{"files": recordFiles}
+
+							fmt.Println(v)
+
+							resp, err := http.PostForm("http://"+d.MonitorIp+":"+d.MonitorPort+"/event/"+gearImage, v)
+							if err != nil {
+								logger.Warnf("Fail to report to monitor for %v", err)
+							}
+
+							fmt.Println(resp.StatusCode)
+
+							defer resp.Body.Close()
+
+							break
+						}
+					}
+				}()
+			}
 
 			// 5. 将/gear目录使用gear fs挂载到/diff目录下
 			gearFS := &fs.GearFS {
@@ -246,34 +289,11 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 
 				ManagerIp: d.ManagerIp, 
 				ManagerPort: d.ManagerPort, 
+
+				RecordChan: recordFilesChan, 
 			}
 
 			notify := make(chan int)
-			
-			// 监控gearfs
-			resp, err := http.PostForm("http://localhost:2020/recorded/"+gearImage, url.Values{})
-			if err != nil {
-				logger.Warnf("Fail to post for %v", err)
-			}
-			defer resp.Body.Close()
-
-			needMonitor := false
-			fmt.Println("statusCOde: ", resp.StatusCode)
-			if resp.StatusCode != http.StatusOK {
-				logger.Warnf("Monitoring...")
-				needMonitor = true
-				go func() {
-					t := time.NewTimer(time.Duration(monitorTime) * time.Second)
-					<- t.C
-					resp, err := http.PostForm("http://localhost:2020/report/"+gearImage, url.Values{})
-					if err != nil {
-						logger.Warnf("Fail to post for %v", err)
-					}
-					defer resp.Body.Close()
-				}()
-			} else {
-				logger.Warnf("Has monitored...")
-			}
 
 
 			// 判断是否是第一次挂载

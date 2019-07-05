@@ -180,6 +180,7 @@ func handlePreFetch(c echo.Context) error {
 		f, err := os.Stat(filepath.Join(GearStoragePath, file))
 		if err != nil {
 			logger.Warnf("Fail to stat file for %v", err)
+			continue
 		}
 
 		hd, err := tar.FileInfoHeader(f, "")
