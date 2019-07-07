@@ -266,7 +266,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 							}
 						case <- t.C:
 							// 向manager汇报
-							v := url.Values{"files": recordFiles, "id": id}
+							v := url.Values{"files": recordFiles, "id": []string{id}}
 
 							fmt.Println(v)
 
