@@ -52,7 +52,7 @@ var (
 
 var (
 	// 监控gearfs的时间
-	monitorTime = 240
+	monitorTime = 60
 )
 
 var (
@@ -255,15 +255,23 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 				go func() {
 					t := time.NewTimer(time.Duration(monitorTime) * time.Second)
 
+					dupFiles := map[string]bool{}
+
 					for {
 						select {
 						case file := <- recordFilesChan:
-							recordFiles = append(recordFiles, file)
+							if _, ok := dupFiles[file]; !ok {
+								dupFiles[file] = true
+								recordFiles = append(recordFiles, file)
+							}
 						case <- t.C:
 							// 向manager汇报
-							v := url.Values{"files": recordFiles}
+							v := url.Values{"files": recordFiles, "id": id}
 
 							fmt.Println(v)
+
+							fmt.Println(d.MonitorIp)
+							fmt.Println(d.MonitorPort)
 
 							resp, err := http.PostForm("http://"+d.MonitorIp+":"+d.MonitorPort+"/event/"+gearImage, v)
 							if err != nil {

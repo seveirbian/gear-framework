@@ -20,37 +20,38 @@ func handleEvent(c echo.Context) error {
 	image := c.Param("IMAGE")
 	// 2. 获取文件
 	values, err := c.FormParams()
-	if err != nil {
-		logger.Warnf("Fail to parse files for %v", err)
-	}
+	// if err != nil {
+	// 	logger.Warnf("Fail to parse files for %v", err)
+	// }
 
-	files := values["files"]
+	// files := values["files"]
 
-	builder, err := build.InitBuilder(image)
-	if err != nil {
-		logger.Fatal("Fail to init a builder to build gear image...")
-	}
-	err = builder.Build(files)
-	if err != nil {
-		logger.Fatal("Fail to build gear image...")
-	}
+	// builder, err := build.InitBuilder(image)
+	// if err != nil {
+	// 	logger.Fatal("Fail to init a builder to build gear image...")
+	// }
+	// err = builder.Build(files)
+	// if err != nil {
+	// 	logger.Fatal("Fail to build gear image...")
+	// }
 
-	slices := strings.Split(image, ":")
-	repo := ""
-	for i := 0; i < len(slices) - 1; i++ {
-		repo += slices[i]
-	}
-	tag := slices[len(slices)-1]
+	// slices := strings.Split(image, ":")
+	// repo := ""
+	// for i := 0; i < len(slices) - 1; i++ {
+	// 	repo += slices[i]
+	// }
+	// tag := slices[len(slices)-1]
 
-	res, err := mnt.Client.ImagePush(mnt.Ctx, repo+"-gear"+":"+tag, types.ImagePushOptions{RegistryAuth: "123"})
-    if err != nil {
-    	logger.Warnf("Fail to push images for %v", err)
-    }
-    defer res.Close()
+	// res, err := mnt.Client.ImagePush(mnt.Ctx, repo+"-gear"+":"+tag, types.ImagePushOptions{RegistryAuth: "123"})
+ //    if err != nil {
+ //    	logger.Warnf("Fail to push images for %v", err)
+ //    }
+ //    defer res.Close()
 
 	// fmt.Println(image)
+	// fmt.Println(values["id"])
 	// fmt.Println(files)
-	fmt.Println("Push ok!")
+	// fmt.Println("Push ok!")
 
 	return c.NoContent(http.StatusOK)
 }
