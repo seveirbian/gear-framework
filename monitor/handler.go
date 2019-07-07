@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo"
-	"github.com/seveirbian/gear/build"
-	"github.com/docker/docker/api/types"
+	// "github.com/seveirbian/gear/build"
+	// "github.com/docker/docker/api/types"
 	// gearTypes "github.com/seveirbian/gear/types"
 )
 
