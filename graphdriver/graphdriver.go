@@ -279,15 +279,11 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 							}
 						case <- t.C:
 							// 向manager汇报
-							v := url.Values{"files": recordFiles, "id": []string{id}}
+							v := url.Values{"files": recordFiles, "image": []string{gearImage}}
 
-							fmt.Println(id)
 							fmt.Println(v)
 
-							fmt.Println(d.MonitorIp)
-							fmt.Println(d.MonitorPort)
-
-							resp, err := http.PostForm("http://"+d.MonitorIp+":"+d.MonitorPort+"/event/"+gearImage, v)
+							resp, err := http.PostForm("http://"+d.MonitorIp+":"+d.MonitorPort+"/event", v)
 							if err != nil {
 								logger.Warnf("Fail to report to monitor for %v", err)
 							}

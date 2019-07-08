@@ -154,10 +154,17 @@ func handlePush(c echo.Context) error {
 func handlePreFetch(c echo.Context) error {
 	t := time.Now()
 
-	image := c.Param("IMAGE")
+	values, err := c.FormParams()
+	if err != nil {
+		logger.Warnf("Fail to get form params for %v", err)
+	}
+
+	files := values["files"]
+
+	image := values["image"][0]
 
 	// 首先确认是否已经存在压缩好的image的gzip文件
-	_, err := os.Lstat(filepath.Join(GearGzipPath, image))
+	_, err = os.Lstat(filepath.Join(GearGzipPath, image))
 	if err == nil {
 		err = c.Attachment(filepath.Join(GearGzipPath, image), image)
 		if err != nil {
@@ -169,12 +176,6 @@ func handlePreFetch(c echo.Context) error {
 		return nil
 	}
 
-	values, err := c.FormParams()
-	if err != nil {
-		logger.Warnf("Fail to get form params for %v", err)
-	}
-
-	files := values["files"]
 
 	rand.Seed(time.Now().Unix())
 	tmpFileName := strconv.Itoa(rand.Int())
