@@ -25,13 +25,15 @@ var (
 )
 
 func handleEvent(c echo.Context) error {
-	// 1. 获取镜像名
-	image := c.Param("IMAGE")
-	// 2. 获取文件
 	values, err := c.FormParams()
 	if err != nil {
 		logger.Warnf("Fail to parse files for %v", err)
 	}
+
+	// 1. 获取镜像名
+	image := values["image"][0]
+	// 2. 获取文件
+	
 
 	files := values["files"]
 

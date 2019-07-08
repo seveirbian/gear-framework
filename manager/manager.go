@@ -51,7 +51,7 @@ func Init() (*Manager, error) {
     e.POST("/query/:CID", handleQuery)
     e.POST("/push/:CID", handlePush)
 
-    e.POST("/prefetch/", handlePreFetch)
+    e.POST("/prefetch", handlePreFetch)
 
     // e.POST("/report/:IMAGE", handleReport)
 

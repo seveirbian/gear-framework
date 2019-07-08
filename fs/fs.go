@@ -209,10 +209,10 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 				}
 			}
 
-			v := url.Values{"files": needToDownloadFiles}
+			v := url.Values{"files": needToDownloadFiles, "image": []string{image}}
 
 
-			resp, err := http.PostForm("http://"+managerIp+":"+managerPort+"/prefetch/"+image, v)
+			resp, err := http.PostForm("http://"+managerIp+":"+managerPort+"/prefetch", v)
 			if err != nil {
 				logger.Warnf("Fail to prefetch for %v", err)
 			}
