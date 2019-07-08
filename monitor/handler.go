@@ -33,9 +33,10 @@ func handleEvent(c echo.Context) error {
 	// 1. 获取镜像名
 	image := values["image"][0]
 	// 2. 获取文件
-	
-
 	files := values["files"]
+
+	fmt.Println("image name: ", image)
+	fmt.Println("files: ", files)
 
 	// 1. 创建镜像的压缩文件
 	err = createGzip(files, GearGzipPath, image)
@@ -97,7 +98,7 @@ func createGzip(files []string, gzipPath string, image string) error {
 		tw := tar.NewWriter(imageGzip)
 
 		for _, file := range files {
-			f, err := os.Stat(filepath.Join(GearGzipPath, file))
+			f, err := os.Stat(filepath.Join(GearStoragePath, file))
 			if err != nil {
 				logger.Warnf("Fail to stat file for %v", err)
 				continue
@@ -115,7 +116,7 @@ func createGzip(files []string, gzipPath string, image string) error {
 				return err
 			}
 
-			b, err := ioutil.ReadFile(filepath.Join(GearGzipPath, file))
+			b, err := ioutil.ReadFile(filepath.Join(GearStoragePath, file))
 			if err != nil {
 				logger.Warnf("Fail to read file for %v", err)
 			}

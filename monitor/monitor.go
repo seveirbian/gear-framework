@@ -39,6 +39,7 @@ var (
 	GearPath             = "/var/lib/gear/"
 	GearBuildPath        = filepath.Join(GearPath, "build")
 	GearGzipPath         = filepath.Join(GearPath, "gzip")
+	GearStoragePath      = filepath.Join(GearPath, "storage")
 )
 
 type Monitor struct {
