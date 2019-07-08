@@ -55,7 +55,7 @@ var (
 	monitorTime = 60
 
 	// 监测是否是第二次挂载容器层
-	secondGet = map[string]bool
+	secondGet = map[string]bool{}
 )
 
 var (
