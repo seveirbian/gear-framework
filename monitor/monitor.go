@@ -267,7 +267,7 @@ func (m *Monitor) do_build(image gearTypes.Image) error {
     }
     pusher.Push()
 
-    res, err := m.Client.ImagePush(m.Ctx, m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+"-gear"+":"+image.Tag, types.ImagePushOptions{})
+    res, err := m.Client.ImagePush(m.Ctx, m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+"-gear"+":"+image.Tag, types.ImagePushOptions{All: true, RegistryAuth: "123"})
     if err != nil {
     	logger.Warnf("Fail to push images for %v", err)
     }
