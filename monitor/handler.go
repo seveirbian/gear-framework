@@ -79,7 +79,7 @@ func handleEvent(c echo.Context) error {
 }
 
 func createGzip(files []string, gzipPath string, image string) error {
-	_, err := os.Lstat(filepath.Join(GearGzipPath, image))
+	_, err := os.Lstat(filepath.Join(gzipPath, image))
 	if err != nil {
 		// 没有预先创建好的压缩包
 
@@ -88,12 +88,11 @@ func createGzip(files []string, gzipPath string, image string) error {
 
 		fmt.Println(tmpFileName)
 
-		defer os.Remove(filepath.Join(GearGzipPath, tmpFileName))
-
 		imageGzip, err := os.Create(filepath.Join(gzipPath, tmpFileName))
 		if err != nil {
 			logger.Warnf("Fail to create file for %v", err)
 		}
+		defer os.Remove(filepath.Join(gzipPath, tmpFileName))
 
 		tw := tar.NewWriter(imageGzip)
 
@@ -132,14 +131,14 @@ func createGzip(files []string, gzipPath string, image string) error {
 		imageGzip.Close()
 
 		// 开始压缩
-		gzipFile, err := os.Create(filepath.Join(GearGzipPath, image))
+		gzipFile, err := os.Create(filepath.Join(gzipPath, image))
 		if err != nil {
 			logger.Warnf("Fail to create gzip file for %v", err)
 		}
 
 		gw := gzip.NewWriter(gzipFile)
 
-		tarContent, err := ioutil.ReadFile(filepath.Join(GearGzipPath, tmpFileName))
+		tarContent, err := ioutil.ReadFile(filepath.Join(gzipPath, tmpFileName))
 		if err != nil {
 			logger.Warnf("Fail to read tmp file for %v", err)
 		}

@@ -71,6 +71,14 @@ func init() {
 			logger.Debugf("Fail to create GearPushPath: %v \n", err)
 		}
 	}
+	// create gear's gzip dir, if not exists, create one
+	_, err = os.Stat(GearGzipPath)
+	if err != nil {
+		err = os.MkdirAll(GearGzipPath, os.ModePerm)
+		if err != nil {
+			logger.Debugf("Fail to create GearGzipPath: %v \n", err)
+		}
+	}
 }
 
 func main() {
