@@ -53,6 +53,9 @@ var (
 var (
 	// 监控gearfs的时间
 	monitorTime = 60
+
+	// 监测是否是第二次挂载容器层
+	secondGet = map[string]bool
 )
 
 var (
@@ -253,6 +256,16 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 				recordFiles := []string{}
 
 				go func() {
+					// 判断是否需要监测
+					if strings.Contains(id, "-init") {
+						return 
+					}
+					if _, ok := secondGet[id]; !ok {
+						secondGet[id] = true
+						return
+					}
+
+
 					t := time.NewTimer(time.Duration(monitorTime) * time.Second)
 
 					dupFiles := map[string]bool{}
@@ -268,6 +281,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 							// 向manager汇报
 							v := url.Values{"files": recordFiles, "id": []string{id}}
 
+							fmt.Println(id)
 							fmt.Println(v)
 
 							fmt.Println(d.MonitorIp)
