@@ -79,6 +79,8 @@ func init() {
 			logger.Debugf("Fail to create GearGzipPath: %v \n", err)
 		}
 	}
+
+	logrus.SetLevel(logrus.WarnLevel)
 }
 
 func main() {

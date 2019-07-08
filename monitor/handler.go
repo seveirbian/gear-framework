@@ -32,7 +32,16 @@ func handleEvent(c echo.Context) error {
 	}
 
 	// 1. 获取镜像名
-	image := values["image"][0]
+	image := values["image"][0] // 202.114.10.146:9999/tomcat-gear:8
+	imageSlices := strings.Split(image, ":")
+	imageRepo := ""
+	for i := 0; i < len(imageSlices) - 2; i++ {
+		imageRepo = imageRepo + imageSlices[i] + ":"
+	}
+	imageRepo += strings.TrimSuffix(imageSlices[len(imageSlices) - 2], "-gear")
+	image = imageRepo + ":" + imageSlices[len(imageSlices) - 1]
+
+
 	// 2. 获取文件
 	files := values["files"]
 

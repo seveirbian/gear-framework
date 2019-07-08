@@ -346,6 +346,7 @@ func (d *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
 		logger.Warnf("Fail to lstat dir.attr for %v", err)
 	}
 
+	attr.Valid = 30 * 24 * time.Hour
 	attr.Inode = dirInfo.Sys().(*syscall.Stat_t).Ino
 	attr.Size = uint64(dirInfo.Size())
 	attr.Blocks = uint64(dirInfo.Sys().(*syscall.Stat_t).Blocks)
@@ -456,6 +457,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	upperFileInfo, err := os.Lstat(filepath.Join(f.upperPath, f.relativePath))
 	if err == nil {
 		// 是的话就返回upper目录的文件信息
+		attr.Valid = 30 * 24 * time.Hour
 		attr.Inode = upperFileInfo.Sys().(*syscall.Stat_t).Ino
 		attr.Size = uint64(upperFileInfo.Size())
 		attr.Blocks = uint64(upperFileInfo.Sys().(*syscall.Stat_t).Blocks)
@@ -549,6 +551,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 			logger.Warnf("Fail to get index file info for %v", err)
 		}
 
+		attr.Valid = 30 * 24 * time.Hour
 		attr.Inode = IndexFileInfo.Sys().(*syscall.Stat_t).Ino
 		attr.Blocks = uint64(IndexFileInfo.Sys().(*syscall.Stat_t).Blocks)
 		attr.Mtime = IndexFileInfo.ModTime()
@@ -563,6 +566,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 			logger.Warnf("Cannot stat file: %v", err)
 		}
 
+		attr.Valid = 30 * 24 * time.Hour
 		attr.Inode = IndexFileInfo.Sys().(*syscall.Stat_t).Ino
 		attr.Size = uint64(IndexFileInfo.Size())
 		attr.Blocks = uint64(IndexFileInfo.Sys().(*syscall.Stat_t).Blocks)
@@ -579,6 +583,9 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	// fmt.Println("f.Attr< ", attr, " >")
 
 	go func() {
+		if f.privateCacheName == "bd5ff" {
+			fmt.Println(f)
+		}
 		if monitorFlag {
 			RecordChan <- f.privateCacheName
 		}
@@ -684,6 +691,9 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 	fileHandler.f = file
 
 	go func() {
+		if f.privateCacheName == "bd5ff" {
+			fmt.Println(f)
+		}
 		if monitorFlag {
 			RecordChan <- f.privateCacheName
 		}
