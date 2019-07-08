@@ -37,6 +37,7 @@ var AccessedFiles []string
 var (
 	GearPath             = "/var/lib/gear/"
 	GearBuildPath        = filepath.Join(GearPath, "build")
+	GearGzipPath         = filepath.Join(GearPath, "gzip")
 )
 
 type Monitor struct {

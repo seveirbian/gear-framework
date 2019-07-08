@@ -6,6 +6,7 @@ import (
     "time"
     "net"
     "net/http"
+    "path/filepath"
     "github.com/labstack/echo"
     "github.com/sirupsen/logrus"
     "github.com/seveirbian/gear/pkg"
@@ -14,6 +15,12 @@ import (
 
 var (
     logger = logrus.WithField("gear", "manager")
+)
+
+var (
+    GearPath             = "/var/lib/gear/"
+    GearGzipPath         = filepath.Join(GearPath, "gzip")
+    GearStoragePath      = filepath.Join(GearPath, "storage")
 )
 
 var (
@@ -44,7 +51,7 @@ func Init() (*Manager, error) {
     e.POST("/query/:CID", handleQuery)
     e.POST("/push/:CID", handlePush)
 
-    e.POST("/prefetch", handlePreFetch)
+    e.POST("/prefetch/:IMAGE", handlePreFetch)
 
     // e.POST("/report/:IMAGE", handleReport)
 

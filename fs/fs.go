@@ -167,8 +167,14 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 	ManagerPort = managerPort
 	RecordChan = rChan
 	// 对第二次启动实现加速
+	// 0. 获取待启动镜像名
+	image, err := os.Readlink(filepath.Join(indexImagePath, "gear-image"))
+	if err != nil {
+		logger.Warnf("Fail to read image name for %v", err)
+	}
+
 	// 1. 首先判断在gear-diff目录下是否存在RecordFiles文件
-	_, err := os.Lstat(filepath.Join(indexImagePath, "RecordFiles"))
+	_, err = os.Lstat(filepath.Join(indexImagePath, "RecordFiles"))
 	if err != nil {
 		// 不存在
 	}else {
@@ -206,7 +212,7 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 			v := url.Values{"files": needToDownloadFiles}
 
 
-			resp, err := http.PostForm("http://"+managerIp+":"+managerPort+"/prefetch", v)
+			resp, err := http.PostForm("http://"+managerIp+":"+managerPort+"/prefetch/"+image, v)
 			if err != nil {
 				logger.Warnf("Fail to prefetch for %v", err)
 			}

@@ -15,6 +15,7 @@ var (
 	GearBuildPath        = filepath.Join(GearPath, "build")
 	GearStoragePath      = filepath.Join(GearPath, "storage")
 	GearPushPath         = filepath.Join(GearPath, "push")
+	GearGzipPath         = filepath.Join(GearPath, "gzip")
 )
 
 var (

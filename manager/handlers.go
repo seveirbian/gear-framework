@@ -20,8 +20,7 @@ import (
 )
 
 var (
-	GearPath             = "/var/lib/gear/"
-	GearStoragePath      = filepath.Join(GearPath, "storage")
+	
 )
 
 func handleNodes(c echo.Context) error {
@@ -154,6 +153,21 @@ func handlePush(c echo.Context) error {
 
 func handlePreFetch(c echo.Context) error {
 	t := time.Now()
+
+	image := c.Param("IMAGE")
+
+	// 首先确认是否已经存在压缩好的image的gzip文件
+	_, err := os.Lstat(filepath.Join(GearGzipPath, image))
+	if err == nil {
+		err = c.Attachment(filepath.Join(GearGzipPath, image), image)
+		if err != nil {
+			logger.Fatal("Fail to return file...")
+		}
+
+		fmt.Println("Time used: ", time.Since(t))
+		
+		return nil
+	}
 
 	values, err := c.FormParams()
 	if err != nil {
