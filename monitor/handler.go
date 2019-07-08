@@ -4,6 +4,7 @@ import (
 	"os"
 	"fmt"
 	"time"
+	"path"
 	"os/exec"
 	"strings"
 	"net/http"
@@ -97,6 +98,10 @@ func createGzip(files []string, gzipPath string, image string) error {
 		tw := tar.NewWriter(imageGzip)
 
 		for _, file := range files {
+			if file == "" {
+				continue
+			}
+
 			f, err := os.Stat(filepath.Join(GearStoragePath, file))
 			if err != nil {
 				logger.Warnf("Fail to stat file for %v", err)
@@ -131,6 +136,14 @@ func createGzip(files []string, gzipPath string, image string) error {
 		imageGzip.Close()
 
 		// 开始压缩
+		_, err = os.Lstat(path.Dir(filepath.Join(gzipPath, image)))
+		if err != nil {
+			err = os.MkdirAll(path.Dir(filepath.Join(gzipPath, image)), os.ModePerm)
+			if err != nil {
+				logger.Warnf("Fail to create parent dir for %v", err)
+			}
+		}
+
 		gzipFile, err := os.Create(filepath.Join(gzipPath, image))
 		if err != nil {
 			logger.Warnf("Fail to create gzip file for %v", err)
