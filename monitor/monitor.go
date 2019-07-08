@@ -272,7 +272,7 @@ func (m *Monitor) do_build(image gearTypes.Image) error {
     	logger.Warnf("Fail to push images for %v", err)
     }
 
-    fmt.Println(res)
+    fmt.Println(res.StatusCode)
 
     defer res.Close()
 
