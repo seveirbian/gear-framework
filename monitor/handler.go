@@ -57,10 +57,14 @@ func handleEvent(c echo.Context) error {
 
 	slices := strings.Split(image, ":")
 	repo := ""
-	for i := 0; i < len(slices) - 1; i++ {
-		repo += slices[i]
+	for i := 0; i < len(slices) - 2; i++ {
+		repo = repo + slices[i] + ":"
 	}
+	repo = repo + slices[len(slices)-2]
 	tag := slices[len(slices)-1]
+
+	fmt.Println(repo)
+	fmt.Println(tag)
 
     cName := "docker"
     cArgs := []string{"push", repo+"-gear"+":"+tag}
