@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"os"
+	"os/exec"
 	"io/ioutil"
 	"fmt"
 	"sync"
@@ -267,12 +268,14 @@ func (m *Monitor) do_build(image gearTypes.Image) error {
     }
     pusher.Push()
 
-    res, err := m.Client.ImagePush(m.Ctx, m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+"-gear"+":"+image.Tag, types.ImagePushOptions{All: true, RegistryAuth: "123"})
-    if err != nil {
-    	logger.Warnf("Fail to push images for %v", err)
+    cName := "docker"
+    cArgs := []string{"push", m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+"-gear"+":"+image.Tag}
+    cCmd := exec.Command(cName, cArgs...)
+    if err := cCmd.Run(); err != nil {
+        fmt.Fprintln(os.Stderr, err)
+        os.Exit(1)
     }
-
-    defer res.Close()
+    fmt.Println("done!")
 
 	return nil
 }

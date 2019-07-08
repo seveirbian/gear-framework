@@ -4,6 +4,7 @@ import (
 	"os"
 	"fmt"
 	"time"
+	"os/exec"
 	"strings"
 	"net/http"
 	"strconv"
@@ -15,7 +16,7 @@ import (
 	"github.com/labstack/echo"
 	gzip "github.com/klauspost/pgzip"
 	"github.com/seveirbian/gear/build"
-	"github.com/docker/docker/api/types"
+	// "github.com/docker/docker/api/types"
 	// gearTypes "github.com/seveirbian/gear/types"
 )
 
@@ -57,11 +58,14 @@ func handleEvent(c echo.Context) error {
 	}
 	tag := slices[len(slices)-1]
 
-	res, err := mnt.Client.ImagePush(mnt.Ctx, repo+"-gear"+":"+tag, types.ImagePushOptions{RegistryAuth: "123"})
-    if err != nil {
-    	logger.Warnf("Fail to push images for %v", err)
+    cName := "docker"
+    cArgs := []string{"push", repo+"-gear"+":"+tag}
+    cCmd := exec.Command(cName, cArgs...)
+    if err := cCmd.Run(); err != nil {
+        fmt.Fprintln(os.Stderr, err)
+        os.Exit(1)
     }
-    defer res.Close()
+    fmt.Println("done!")
 
 	fmt.Println(image)
 	fmt.Println(values["id"])
