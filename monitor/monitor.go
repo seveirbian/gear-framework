@@ -100,8 +100,8 @@ func (m *Monitor) Monitor() error {
 
 	// 获取待处理的镜像列表
 	for {
-		// m.getRepositories()
-		// m.build()
+		m.getRepositories()
+		m.build()
 		time.Sleep(maxTime)
 	}
 
