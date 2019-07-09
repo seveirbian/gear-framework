@@ -55,7 +55,7 @@ func handleEvent(c echo.Context) error {
 	}
 
 	// 2. 构建包含预取文件的新gear镜像
-	builder, err := build.InitBuilder(image)
+	builder, err := build.InitBuilder(image, "-gearmd")
 	if err != nil {
 		logger.Fatal("Fail to init a builder to build gear image...")
 	}

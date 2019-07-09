@@ -19,7 +19,7 @@ var buildCmd = &cobra.Command{
 	Long:  `Build a gear image from a docker image`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		builder, err := build.InitBuilder(args[0])
+		builder, err := build.InitBuilder(args[0], "-gear")
 		if err != nil {
 			logrus.Fatal("Fail to init a builder to build gear image...")
 		}

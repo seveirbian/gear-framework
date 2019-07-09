@@ -80,7 +80,7 @@ func init() {
 		}
 	}
 
-	logrus.SetLevel(logrus.WarnLevel)
+	logrus.SetLevel(logrus.FatalLevel)
 }
 
 func main() {

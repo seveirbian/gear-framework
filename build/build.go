@@ -60,12 +60,12 @@ type Builder struct {
 	Dockerfile     DockerFile
 }
 
-func InitBuilder(image string) (*Builder, error) {
+func InitBuilder(image, suffix string) (*Builder, error) {
 	// 1. parse DImage
 	dImageName, dImageTag := parseImage(image)
 
 	// 2. init GImage
-	gImageName := dImageName + "-gear"
+	gImageName := dImageName + suffix
 	gImageTag := dImageTag
 
 	// 3. init docker client which is used to interact with docker daemon

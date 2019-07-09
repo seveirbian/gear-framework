@@ -490,9 +490,12 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 			if err == nil {
 				// 跳过下载步骤
 				// 创建硬连接到镜像私有缓存目录下
-				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+				_, err = os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 				if err != nil {
-					logger.Fatalf("Fail to create hard link for %v", err)
+					err := os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+					if err != nil {
+						logger.Fatalf("Fail to create hard link for %v", err)
+					}
 				}
 			} else {
 				// 从manager节点下载cid文件
@@ -625,9 +628,12 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 			if err == nil {
 				// 跳过下载步骤
 				// 创建硬连接到镜像私有缓存目录下
-				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+				_, err = os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 				if err != nil {
-					logger.Fatalf("Fail to create hard link for %v", err)
+					err := os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+					if err != nil {
+						logger.Fatalf("Fail to create hard link for %v", err)
+					}
 				}
 			} else {
 				// 从manager节点下载cid文件
