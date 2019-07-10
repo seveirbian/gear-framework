@@ -4,7 +4,7 @@ import (
 	"os"
 	"fmt"
 	"time"
-	"path"
+	// "path"
 	"os/exec"
 	"strings"
 	"net/http"
@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 
 	"github.com/labstack/echo"
-	gzip "github.com/klauspost/pgzip"
+	// gzip "github.com/klauspost/pgzip"
 	"github.com/seveirbian/gear/build"
 	// "github.com/docker/docker/api/types"
 	// gearTypes "github.com/seveirbian/gear/types"
@@ -98,7 +98,6 @@ func createGzip(files []string, gzipPath string, image string) error {
 	_, err := os.Lstat(filepath.Join(gzipPath, image))
 	if err != nil {
 		// 没有预先创建好的压缩包
-
 		rand.Seed(time.Now().Unix())
 		tmpFileName := strconv.Itoa(rand.Int())
 
@@ -151,33 +150,33 @@ func createGzip(files []string, gzipPath string, image string) error {
 		imageGzip.Close()
 
 		// 开始压缩
-		_, err = os.Lstat(path.Dir(filepath.Join(gzipPath, image)))
-		if err != nil {
-			err = os.MkdirAll(path.Dir(filepath.Join(gzipPath, image)), os.ModePerm)
-			if err != nil {
-				logger.Warnf("Fail to create parent dir for %v", err)
-			}
-		}
+		// _, err = os.Lstat(path.Dir(filepath.Join(gzipPath, image)))
+		// if err != nil {
+		// 	err = os.MkdirAll(path.Dir(filepath.Join(gzipPath, image)), os.ModePerm)
+		// 	if err != nil {
+		// 		logger.Warnf("Fail to create parent dir for %v", err)
+		// 	}
+		// }
 
-		gzipFile, err := os.Create(filepath.Join(gzipPath, image))
-		if err != nil {
-			logger.Warnf("Fail to create gzip file for %v", err)
-		}
+		// gzipFile, err := os.Create(filepath.Join(gzipPath, image))
+		// if err != nil {
+		// 	logger.Warnf("Fail to create gzip file for %v", err)
+		// }
 
-		gw := gzip.NewWriter(gzipFile)
+		// gw := gzip.NewWriter(gzipFile)
 
-		tarContent, err := ioutil.ReadFile(filepath.Join(gzipPath, tmpFileName))
-		if err != nil {
-			logger.Warnf("Fail to read tmp file for %v", err)
-		}
+		// tarContent, err := ioutil.ReadFile(filepath.Join(gzipPath, tmpFileName))
+		// if err != nil {
+		// 	logger.Warnf("Fail to read tmp file for %v", err)
+		// }
 
-		_, err = gw.Write(tarContent)
-		if err != nil {
-			logger.Warnf("Fail to write gzip file for %v", err)
-		}
+		// _, err = gw.Write(tarContent)
+		// if err != nil {
+		// 	logger.Warnf("Fail to write gzip file for %v", err)
+		// }
 
-		gw.Close()
-		gzipFile.Close()
+		// gw.Close()
+		// gzipFile.Close()
 	}
 
 	return nil

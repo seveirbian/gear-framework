@@ -219,46 +219,46 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 			defer resp.Body.Close()
 
 			// 先解压
-			gFile, err := os.Create(filepath.Join(GearPublicCachePath, "tmpgzip"))
-			if err != nil {
-				logger.Warnf("Fail to create tmpgzip for %v", err)
-			}
+			// gFile, err := os.Create(filepath.Join(GearPublicCachePath, "tmpgzip"))
+			// if err != nil {
+			// 	logger.Warnf("Fail to create tmpgzip for %v", err)
+			// }
 
-			_, err = io.Copy(gFile, resp.Body)
-			if err != nil {
-				logger.Warnf("Fail to copy gzipFile for %v", err)
-			}
+			// _, err = io.Copy(gFile, resp.Body)
+			// if err != nil {
+			// 	logger.Warnf("Fail to copy gzipFile for %v", err)
+			// }
 
-			gFile.Close()
+			// gFile.Close()
 
-			g, err := os.Open(filepath.Join(GearPublicCachePath, "tmpgzip"))
-			if err != nil {
-				logger.Warnf("Fail to open gzip for %v", err)
-			}
-			defer g.Close()
+			// g, err := os.Open(filepath.Join(GearPublicCachePath, "tmpgzip"))
+			// if err != nil {
+			// 	logger.Warnf("Fail to open gzip for %v", err)
+			// }
+			// defer g.Close()
 
-			gr, err := gzip.NewReader(g)
-			if err != nil {
-				logger.Warnf("Fail to new reader gzip for %v", err)
-			}
-			defer gr.Close()
+			// gr, err := gzip.NewReader(g)
+			// if err != nil {
+			// 	logger.Warnf("Fail to new reader gzip for %v", err)
+			// }
+			// defer gr.Close()
 
-			gContent, err := ioutil.ReadAll(gr)
-			if err != nil {
-				logger.Warnf("Fail to read gzip content for %v", err)
-			}
+			// gContent, err := ioutil.ReadAll(gr)
+			// if err != nil {
+			// 	logger.Warnf("Fail to read gzip content for %v", err)
+			// }
 
-			err = ioutil.WriteFile(filepath.Join(GearPublicCachePath, "tmp"), gContent, 0777)
-			if err != nil {
-				logger.Fatalf("Fail to write tmp file for %v", err)
-			}
+			// err = ioutil.WriteFile(filepath.Join(GearPublicCachePath, "tmp"), gContent, 0777)
+			// if err != nil {
+			// 	logger.Fatalf("Fail to write tmp file for %v", err)
+			// }
 
-			f, err := os.Open(filepath.Join(GearPublicCachePath, "tmp"))
-			if err != nil {
-				logger.Warnf("Fail to open file for %v", err)
-			}
+			// f, err := os.Open(filepath.Join(GearPublicCachePath, "tmp"))
+			// if err != nil {
+			// 	logger.Warnf("Fail to open file for %v", err)
+			// }
 
-			tr := tar.NewReader(f)
+			tr := tar.NewReader(resp.Body)
 
 			for {
 				th, err := tr.Next()
@@ -270,12 +270,16 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 				if err != nil {
 					logger.Warnf("Fail to create tgt file for %v", err)
 				}
-				defer tgt.Close()
 
-				_, err = io.Copy(tgt, tr)
+				gr, err := gzip.NewReader(tr)
+
+				_, err = io.Copy(tgt, gr)
 				if err != nil {
-					logger.Warnf("Fail to copy for %v", err)
+					logger.Fatalf("Fail to copy for %v", err)
 				}
+
+				gr.Close()
+				tgt.Close()
 
 				err = os.Link(filepath.Join(GearPublicCachePath, th.Name), filepath.Join(privateCachePath, th.Name))
 				if err != nil {
@@ -287,13 +291,6 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 				if err != nil {
 					logger.Warnf("Fail to chmod file for %v", err)
 				}
-			}
-
-			f.Close()
-
-			err = os.Remove(filepath.Join(GearPublicCachePath, "tmp"))
-			if err != nil {
-				logger.Warnf("Fail to remove tmp file for %v", err)
 			}
 
 			_, err = os.Create(filepath.Join(indexImagePath, "prefetched"))

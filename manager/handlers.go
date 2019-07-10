@@ -7,7 +7,7 @@ import (
 	// "net/url"
 	// "syscall"
 	"time"
-	gzip "github.com/klauspost/pgzip"
+	// gzip "github.com/klauspost/pgzip"
 	"math/rand"
 	"archive/tar"
 	"io/ioutil"
@@ -161,21 +161,20 @@ func handlePreFetch(c echo.Context) error {
 
 	files := values["files"]
 
-	image := values["image"][0]
+	// image := values["image"][0]
 
-	// 首先确认是否已经存在压缩好的image的gzip文件
-	_, err = os.Lstat(filepath.Join(GearGzipPath, image))
-	if err == nil {
-		err = c.Attachment(filepath.Join(GearGzipPath, image), image)
-		if err != nil {
-			logger.Fatal("Fail to return file...")
-		}
+	// // 首先确认是否已经存在压缩好的image的gzip文件
+	// _, err = os.Lstat(filepath.Join(GearGzipPath, image))
+	// if err == nil {
+	// 	err = c.Attachment(filepath.Join(GearGzipPath, image), image)
+	// 	if err != nil {
+	// 		logger.Fatal("Fail to return file...")
+	// 	}
 
-		fmt.Println("Time used: ", time.Since(t))
+	// 	fmt.Println("Time used: ", time.Since(t))
 		
-		return nil
-	}
-
+	// 	return nil
+	// }
 
 	rand.Seed(time.Now().Unix())
 	tmpFileName := strconv.Itoa(rand.Int())
@@ -228,25 +227,25 @@ func handlePreFetch(c echo.Context) error {
 	fmt.Println("tar time: ", time.Since(t))
 
 	// 再压缩，使用gzip
-	gzipFile, err := os.Create(filepath.Join(GearStoragePath, tmpFileName+"gzip"))
-	if err != nil {
-		logger.Warnf("Fail to create gzip file for %v", err)
-	}
+	// gzipFile, err := os.Create(filepath.Join(GearStoragePath, tmpFileName+"gzip"))
+	// if err != nil {
+	// 	logger.Warnf("Fail to create gzip file for %v", err)
+	// }
 
-	gw := gzip.NewWriter(gzipFile)
+	// gw := gzip.NewWriter(gzipFile)
 
-	tarContent, err := ioutil.ReadFile(filepath.Join(GearStoragePath, tmpFileName))
-	if err != nil {
-		logger.Warnf("Fail to read tmp file for %v", err)
-	}
+	// tarContent, err := ioutil.ReadFile(filepath.Join(GearStoragePath, tmpFileName))
+	// if err != nil {
+	// 	logger.Warnf("Fail to read tmp file for %v", err)
+	// }
 
-	_, err = gw.Write(tarContent)
-	if err != nil {
-		logger.Warnf("Fail to write gzip file for %v", err)
-	}
+	// _, err = gw.Write(tarContent)
+	// if err != nil {
+	// 	logger.Warnf("Fail to write gzip file for %v", err)
+	// }
 
-	gw.Close()
-	gzipFile.Close()
+	// gw.Close()
+	// gzipFile.Close()
 
 	err = c.Attachment(filepath.Join(GearStoragePath, tmpFileName+"gzip"), tmpFileName+"gzip")
 	if err != nil {
