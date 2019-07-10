@@ -375,7 +375,7 @@ func (b *Builder) tarAndCopy(recordedFiles []string) error {
 		return err
 	}
 
-	if len(recordedFiles) != 0 {
+	if recordedFiles != nil {
 		content := ""
 
 		for _, file := range recordedFiles {
