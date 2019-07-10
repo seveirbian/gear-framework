@@ -6,11 +6,13 @@ import (
 	"os"
 	// "bytes"
 	"strings"
+	"io/ioutil"
 	// "crypto/md5"
 	"archive/tar"
 	"encoding/json"
 	"path/filepath"
 
+	gzip "github.com/klauspost/pgzip"
 	"github.com/docker/docker/api/types"
 	"github.com/seveirbian/gear/pkg"
 	"github.com/docker/docker/client"
@@ -281,17 +283,9 @@ func (b *Builder) tarAndCopy(recordedFiles []string) error {
 			}
 			defer src.Close()
 
-			// dstPath, _ := filepath.Split(finalPath)
-			// _, err = os.Stat(filepath.Join(b.RegularFilesPath, dstPath))
-			// if err != nil {
-			// 	err = os.MkdirAll(filepath.Join(b.RegularFilesPath, dstPath), os.ModePerm)
-			// 	if err != nil {
-			// 		logger.Warnf("Fail to create %s\n", dstPath)
-			// 	}
-			// }
-
 			hashValue := []byte(pkg.HashAFileInMD5(path))
 
+			// 创建压缩的普通文件
 			dst, err := os.Create(filepath.Join(b.RegularFilesPath, string(hashValue)))
 			if err != nil {
 				logger.WithField("err", err).Warnf("Fail to create file: %s\n", filepath.Join(b.RegularFilesPath, string(hashValue)))
@@ -299,15 +293,25 @@ func (b *Builder) tarAndCopy(recordedFiles []string) error {
 			}
 			defer dst.Close()
 
+			gw := gzip.NewWriter(dst)
+			defer gw.Close()
+
+			srcContent, err := ioutil.ReadAll(src)
+			if err != nil {
+				logger.Warnf("Fail to read file all for %v", err)
+			}
+
+			_, err = gw.Write(srcContent)
+			if err != nil {
+				logger.Warnf("Fail to write gzip file for %v", err)
+			}
+
 			// 修改文件属性
 			err = os.Chmod(filepath.Join(b.RegularFilesPath, string(hashValue)), f.Mode().Perm())
-
-			// 拷贝文件内容
-			_, err = io.Copy(dst, src)
 			if err != nil {
-				logger.Warn("Fail to copy file...")
-				return err
+				logger.Warnf("Fail to chmod for %v", err)
 			}
+
 
 			// 将普通文件的内容替换成哈希值
 			hd, err := tar.FileInfoHeader(f, target)

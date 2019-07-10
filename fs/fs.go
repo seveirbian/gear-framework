@@ -653,7 +653,13 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 				}
 				defer tgt.Close()
 
-				_, err = io.Copy(tgt, resp.Body)
+				// 先对内容进行解压
+				gr, err := gzip.NewReader(resp.Body)
+				if err != nil {
+					logger.Warnf("Fail to create gzip reader for %v", err)
+				}
+
+				_, err = io.Copy(tgt, gr)
 				if err != nil {
 					logger.Fatalf("Fail to copy for %v", err)
 				}
