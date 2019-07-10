@@ -33,14 +33,8 @@ func handleEvent(c echo.Context) error {
 
 	// 1. 获取镜像名
 	image := values["image"][0] // 202.114.10.146:9999/tomcat-gear:8
-	imageSlices := strings.Split(image, ":")
-	imageRepo := ""
-	for i := 0; i < len(imageSlices) - 1; i++ {
-		imageRepo = imageRepo + imageSlices[i] + ":"
-	}
-	imageRepo += strings.TrimSuffix(imageRepo, "-gear")
-	image = imageRepo + ":" + imageSlices[len(imageSlices) - 1]
-
+	imageRepo, imageTag := parseImage(image)
+	image = strings.TrimSuffix(imageRepo, "-gear") + ":" + imageTag
 
 	// 2. 获取文件
 	files := values["files"]
@@ -172,7 +166,41 @@ func createGzip(files []string, gzipPath string, image string) error {
 	return nil
 }
 
+func parseImage(image string) (imageName string, imageTag string) {
+	registryAndImage := strings.Split(image, "/")
 
+	// dockerhub镜像
+	if len(registryAndImage) == 1 {
+		imageAndTag := strings.Split(image, ":")
+
+		switch len(imageAndTag) {
+		case 1: 
+			logger.Warn("No image tag provided, use \"latest\"\n")
+			imageName = imageAndTag[0]
+			imageTag = "latest"
+		case 2:
+			imageName = imageAndTag[0]
+			imageTag = imageAndTag[1]
+		}
+	}
+
+	// 私有仓库镜像
+	if len(registryAndImage) == 2 {
+		imageAndTag := strings.Split(registryAndImage[1], ":")
+
+		switch len(imageAndTag) {
+		case 1: 
+			logger.Warn("No image tag provided, use \"latest\"\n")
+			imageName = registryAndImage[0] + "/" + imageAndTag[0]
+			imageTag = "latest"
+		case 2:
+			imageName = registryAndImage[0] + "/" + imageAndTag[0]
+			imageTag = imageAndTag[1]
+		}
+	}
+
+	return
+}
 
 
 

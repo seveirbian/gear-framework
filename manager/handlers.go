@@ -161,21 +161,6 @@ func handlePreFetch(c echo.Context) error {
 
 	files := values["files"]
 
-	// image := values["image"][0]
-
-	// // 首先确认是否已经存在压缩好的image的gzip文件
-	// _, err = os.Lstat(filepath.Join(GearGzipPath, image))
-	// if err == nil {
-	// 	err = c.Attachment(filepath.Join(GearGzipPath, image), image)
-	// 	if err != nil {
-	// 		logger.Fatal("Fail to return file...")
-	// 	}
-
-	// 	fmt.Println("Time used: ", time.Since(t))
-		
-	// 	return nil
-	// }
-
 	rand.Seed(time.Now().Unix())
 	tmpFileName := strconv.Itoa(rand.Int())
 
@@ -257,27 +242,7 @@ func handlePreFetch(c echo.Context) error {
 	return nil
 }
 
-// func handleReport(c echo.Context) error {
-// 	// 1. 获取镜像名
-// 	image := c.Param("IMAGE")
-// 	// 2. 获取文件
-// 	values, err := c.FormParams()
-// 	if err != nil {
-// 		logger.Warnf("Fail to parse files for %v", err)
-// 	}
 
-// 	files := values["files"]
-
-// 	v := url.Values{"files": files}
-
-// 	resp, err := http.PostForm("http://"+mgr.MonitorIp+":"+mgr.MonitorPort+"/event/"+image, v)
-// 	if err != nil {
-// 		logger.Warnf("Fail to report to manager for %v", err)
-// 	}
-// 	defer resp.Body.Close()
-
-// 	return c.NoContent(http.StatusOK)
-// }
 
 
 
