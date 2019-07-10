@@ -161,6 +161,11 @@ func (m *Monitor) getRepositories() error {
 
 	toBeBuild := map[string][]string{}
 	for _, repo := range repos.Repos {
+		// 不要再对-gearmd镜像构建啦
+		if strings.HasSuffix(repo, "-gearmd") {
+			continue
+		}
+
 		if !strings.HasSuffix(repo, "-gear") {
 			resp, err := http.Get("http://"+m.RegistryIp+":"+m.RegistryPort+"/v2/"+repo+"/tags/list")
 			if err != nil {
