@@ -76,7 +76,7 @@ func handleEvent(c echo.Context) error {
 	fmt.Println(tag)
 
     cName := "docker"
-    cArgs := []string{"push", repo+"-gear"+":"+tag}
+    cArgs := []string{"push", repo+"-gearmd"+":"+tag}
     cCmd := exec.Command(cName, cArgs...)
     if err := cCmd.Run(); err != nil {
         fmt.Fprintln(os.Stderr, err)

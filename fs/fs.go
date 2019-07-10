@@ -378,13 +378,13 @@ func (d *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	for _, file := range files {
 		var de fuse.Dirent
 		de.Name = file.Name()
-		switch file.Mode() {
-		case os.ModeDir: de.Type = fuse.DT_Dir
-		case os.ModeSymlink: de.Type = fuse.DT_Link
-		case os.ModeNamedPipe: de.Type = fuse.DT_FIFO
-		case os.ModeSocket: de.Type = fuse.DT_Socket
-		case os.ModeDevice: de.Type = fuse.DT_Block
-		case os.ModeCharDevice: de.Type = fuse.DT_Char
+		switch mode := file.Mode(); {
+		case mode&os.ModeDir != 0: de.Type = fuse.DT_Dir
+		case mode&os.ModeSymlink != 0: de.Type = fuse.DT_Link
+		case mode&os.ModeNamedPipe != 0: de.Type = fuse.DT_FIFO
+		case mode&os.ModeSocket != 0: de.Type = fuse.DT_Socket
+		case mode&os.ModeDevice != 0: de.Type = fuse.DT_Block
+		case mode&os.ModeCharDevice != 0: de.Type = fuse.DT_Char
 		// case os.ModeIrregular: de.Type = DT_Unknown
 		default: de.Type = fuse.DT_File
 		}
@@ -745,7 +745,6 @@ func (fh *FileHandler) ReadAll(ctx context.Context) ([]byte, error) {
 func (fh *FileHandler) Flush(ctx context.Context, req *fuse.FlushRequest) error {
 	return nil
 }
-
 
 
 
