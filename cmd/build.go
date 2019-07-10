@@ -24,7 +24,7 @@ var buildCmd = &cobra.Command{
 			logrus.Fatal("Fail to init a builder to build gear image...")
 		}
 
-		err = builder.Build([]string{})
+		err = builder.Build(nil)
 		if err != nil {
 			logrus.Fatal("Fail to build gear image...")
 		}
