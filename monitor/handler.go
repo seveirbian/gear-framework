@@ -59,14 +59,15 @@ func handleEvent(c echo.Context) error {
 	}
 
 	// push -gearmd镜像
+	mdImage := strings.TrimSuffix(imageRepo, "-gear") + "-gearmd" + ":" + imageTag
     cName := "docker"
-    cArgs := []string{"push", image}
+    cArgs := []string{"push", mdImage}
     cCmd := exec.Command(cName, cArgs...)
     if err := cCmd.Run(); err != nil {
         fmt.Fprintln(os.Stderr, err)
         os.Exit(1)
     }
-    fmt.Println("push", image, "done!")
+    fmt.Println("push", mdImage, "done!")
 
 	// fmt.Println(image)
 	// fmt.Println(values["id"])
