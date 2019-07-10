@@ -513,12 +513,20 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 				if err != nil {
 					logger.Fatalf("Fail to create file for %V", err)
 				}
-				defer tgt.Close()
 
-				_, err = io.Copy(tgt, resp.Body)
+				// 先对内容进行解压
+				gr, err := gzip.NewReader(resp.Body)
+				if err != nil {
+					logger.Warnf("Fail to create gzip reader for %v", err)
+				}
+
+				_, err = io.Copy(tgt, gr)
 				if err != nil {
 					logger.Fatalf("Fail to copy for %v", err)
 				}
+
+				gr.Close()
+				tgt.Close()
 
 				// 4. 创建硬连接到镜像私有缓存目录下
 				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
@@ -651,7 +659,6 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 				if err != nil {
 					logger.Fatalf("Fail to create file for %V", err)
 				}
-				defer tgt.Close()
 
 				// 先对内容进行解压
 				gr, err := gzip.NewReader(resp.Body)
@@ -663,6 +670,9 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 				if err != nil {
 					logger.Fatalf("Fail to copy for %v", err)
 				}
+
+				gr.Close()
+				tgt.Close()
 
 				// 4. 创建硬连接到镜像私有缓存目录下
 				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))

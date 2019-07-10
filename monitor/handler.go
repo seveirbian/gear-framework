@@ -61,7 +61,7 @@ func handleEvent(c echo.Context) error {
 	}
 	err = builder.Build(files)
 	if err != nil {
-		logger.Fatal("Fail to build gear image...")
+		logger.Fatal("Fail to build gear image for %v", err)
 	}
 
 	slices := strings.Split(image, ":")

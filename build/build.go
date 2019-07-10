@@ -232,7 +232,7 @@ func (b *Builder) tarAndCopy(recordedFiles []string) error {
 	// copy regular files to /var/lib/gear/build/imageID/common/
 	tmpFile, err := os.Create(filepath.Join(b.IrregularFilesPath, "tmp.tar"))
 	if err != nil {
-		logger.Warn("Fail to create tmp.tar...")
+		logger.Warnf("Fail to create tmp.tar for %v", err)
 		return err
 	}
 	defer tmpFile.Close()
@@ -278,7 +278,7 @@ func (b *Builder) tarAndCopy(recordedFiles []string) error {
 		if f.Mode().IsRegular() {
 			src, err := os.Open(path)
 			if err != nil {
-				logger.Warnf("Fail to open file: %s\n", path)
+				logger.Warnf("Fail to open file for %v", err)
 				return err
 			}
 			defer src.Close()
