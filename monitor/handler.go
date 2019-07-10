@@ -68,9 +68,9 @@ func handleEvent(c echo.Context) error {
     }
     fmt.Println("push", image, "done!")
 
-	fmt.Println(image)
-	fmt.Println(values["id"])
-	fmt.Println(files)
+	// fmt.Println(image)
+	// fmt.Println(values["id"])
+	// fmt.Println(files)
 	fmt.Println("Push ok!")
 
 	// mnt.Client.ImageRemove(mnt.Ctx, )
