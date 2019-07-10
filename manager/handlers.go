@@ -247,7 +247,7 @@ func handlePreFetch(c echo.Context) error {
 	// gw.Close()
 	// gzipFile.Close()
 
-	err = c.Attachment(filepath.Join(GearStoragePath, tmpFileName+"gzip"), tmpFileName+"gzip")
+	err = c.Attachment(filepath.Join(GearStoragePath, tmpFileName), tmpFileName)
 	if err != nil {
 		logger.Fatal("Fail to return file...")
 	}
