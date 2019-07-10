@@ -285,31 +285,34 @@ func (b *Builder) tarAndCopy(recordedFiles []string) error {
 
 			hashValue := []byte(pkg.HashAFileInMD5(path))
 
-			// 创建压缩的普通文件
-			dst, err := os.Create(filepath.Join(b.RegularFilesPath, string(hashValue)))
+			_, err = os.Lstat(filepath.Join(b.RegularFilesPath, string(hashValue)))
 			if err != nil {
-				logger.WithField("err", err).Warnf("Fail to create file: %s\n", filepath.Join(b.RegularFilesPath, string(hashValue)))
-				return err
-			}
-			defer dst.Close()
+				// 创建压缩的普通文件
+				dst, err := os.Create(filepath.Join(b.RegularFilesPath, string(hashValue)))
+				if err != nil {
+					logger.WithField("err", err).Warnf("Fail to create file: %s\n", filepath.Join(b.RegularFilesPath, string(hashValue)))
+					return err
+				}
+				defer dst.Close()
 
-			gw := gzip.NewWriter(dst)
-			defer gw.Close()
+				gw := gzip.NewWriter(dst)
+				defer gw.Close()
 
-			srcContent, err := ioutil.ReadAll(src)
-			if err != nil {
-				logger.Warnf("Fail to read file all for %v", err)
-			}
+				srcContent, err := ioutil.ReadAll(src)
+				if err != nil {
+					logger.Warnf("Fail to read file all for %v", err)
+				}
 
-			_, err = gw.Write(srcContent)
-			if err != nil {
-				logger.Warnf("Fail to write gzip file for %v", err)
-			}
+				_, err = gw.Write(srcContent)
+				if err != nil {
+					logger.Warnf("Fail to write gzip file for %v", err)
+				}
 
-			// 修改文件属性
-			err = os.Chmod(filepath.Join(b.RegularFilesPath, string(hashValue)), f.Mode().Perm())
-			if err != nil {
-				logger.Warnf("Fail to chmod for %v", err)
+				// 修改文件属性
+				err = os.Chmod(filepath.Join(b.RegularFilesPath, string(hashValue)), f.Mode().Perm())
+				if err != nil {
+					logger.Warnf("Fail to chmod for %v", err)
+				}
 			}
 
 

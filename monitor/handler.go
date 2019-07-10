@@ -35,10 +35,10 @@ func handleEvent(c echo.Context) error {
 	image := values["image"][0] // 202.114.10.146:9999/tomcat-gear:8
 	imageSlices := strings.Split(image, ":")
 	imageRepo := ""
-	for i := 0; i < len(imageSlices) - 2; i++ {
+	for i := 0; i < len(imageSlices) - 1; i++ {
 		imageRepo = imageRepo + imageSlices[i] + ":"
 	}
-	imageRepo += strings.TrimSuffix(imageSlices[len(imageSlices) - 2], "-gear")
+	imageRepo += strings.TrimSuffix(imageRepo, "-gear")
 	image = imageRepo + ":" + imageSlices[len(imageSlices) - 1]
 
 
@@ -46,15 +46,15 @@ func handleEvent(c echo.Context) error {
 	files := values["files"]
 
 	fmt.Println("image name: ", image)
-	fmt.Println("files: ", files)
+	// fmt.Println("files: ", files)
 
 	// 1. 创建镜像的压缩文件
-	err = createGzip(files, GearGzipPath, image)
-	if err != nil {
-		logger.Warnf("Fail to create image gizp file for %v", err)
-	}
+	// err = createGzip(files, GearGzipPath, image)
+	// if err != nil {
+	// 	logger.Warnf("Fail to create image gizp file for %v", err)
+	// }
 
-	// 2. 构建包含预取文件的新gear镜像
+	// 3. 构建包含预取文件的新gear镜像
 	builder, err := build.InitBuilder(image, "-gearmd")
 	if err != nil {
 		logger.Fatal("Fail to init a builder to build gear image...")
@@ -64,25 +64,15 @@ func handleEvent(c echo.Context) error {
 		logger.Fatal("Fail to build gear image for %v", err)
 	}
 
-	slices := strings.Split(image, ":")
-	repo := ""
-	for i := 0; i < len(slices) - 2; i++ {
-		repo = repo + slices[i] + ":"
-	}
-	repo = repo + slices[len(slices)-2]
-	tag := slices[len(slices)-1]
-
-	fmt.Println(repo)
-	fmt.Println(tag)
-
+	// push -gearmd镜像
     cName := "docker"
-    cArgs := []string{"push", repo+"-gearmd"+":"+tag}
+    cArgs := []string{"push", image}
     cCmd := exec.Command(cName, cArgs...)
     if err := cCmd.Run(); err != nil {
         fmt.Fprintln(os.Stderr, err)
         os.Exit(1)
     }
-    fmt.Println("done!")
+    fmt.Println("push", image, "done!")
 
 	fmt.Println(image)
 	fmt.Println(values["id"])

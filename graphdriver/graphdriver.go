@@ -265,7 +265,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 						return
 					}
 
-
+					fmt.Println("Monitoring...")
 					t := time.NewTimer(time.Duration(monitorTime) * time.Second)
 
 					dupFiles := map[string]bool{}

@@ -28,7 +28,7 @@ import (
 
 var (
 	logger = logrus.WithField("gear", "monitor")
-	maxTime = time.Duration(time.Second*120)
+	maxTime = time.Duration(time.Second*10)
 )
 
 var mnt Monitor = Monitor{}
