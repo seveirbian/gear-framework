@@ -76,7 +76,7 @@ func handleEvent(c echo.Context) error {
 }
 
 func check(repo, tag string) bool {
-	fmt.Println("FUCK!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	repo = strings.TrimPrefix(repo, mnt.RegistryIp+":"+mnt.RegistryPort+"/")
 
 	resp, err := http.Get("http://"+mnt.RegistryIp+":"+mnt.RegistryPort+"/v2/"+repo+"/tags/list")
 	if err != nil {
@@ -92,6 +92,8 @@ func check(repo, tag string) bool {
 	}
 	var tags Tags
 	json.Unmarshal(rs, &tags)
+
+	fmt.Println(tags)
 
 	for _, btTag := range tags.Tags {
 		fmt.Println(repo, "  ", tag, "  ", btTag)
