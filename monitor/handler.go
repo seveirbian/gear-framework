@@ -43,7 +43,7 @@ func handleEvent(c echo.Context) error {
 	fmt.Println("image name: ", image)
 
 	// 3. 检查是否已经构建过
-	if !check(imageRepo, imageTag) {
+	if !check(strings.TrimSuffix(imageRepo, "-gear") + "-gearmd", imageTag) {
 		// 3. 构建包含预取文件的新gear镜像
 		builder, err := build.InitBuilder(image, "-gearmd")
 		if err != nil {
@@ -92,6 +92,7 @@ func check(repo, tag string) bool {
 	json.Unmarshal(rs, &tags)
 
 	for _, btTag := range tags.Tags {
+		fmt.Println(repo, "  ", tag, "  ", btTag)
 		if btTag == tag {
 			return true
 		}
