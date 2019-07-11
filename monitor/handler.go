@@ -40,43 +40,63 @@ func handleEvent(c echo.Context) error {
 	files := values["files"]
 
 	fmt.Println("image name: ", image)
-	// fmt.Println("files: ", files)
 
-	// 1. 创建镜像的压缩文件
-	// err = createGzip(files, GearGzipPath, image)
-	// if err != nil {
-	// 	logger.Warnf("Fail to create image gizp file for %v", err)
-	// }
+	// 3. 检查是否已经构建过
+	if !check(imageRepo, imageTag) {
+		// 3. 构建包含预取文件的新gear镜像
+		builder, err := build.InitBuilder(image, "-gearmd")
+		if err != nil {
+			logger.Fatal("Fail to init a builder to build gear image...")
+		}
+		err = builder.Build(files)
+		if err != nil {
+			logger.Fatal("Fail to build gear image for %v", err)
+		}
 
-	// 3. 构建包含预取文件的新gear镜像
-	builder, err := build.InitBuilder(image, "-gearmd")
-	if err != nil {
-		logger.Fatal("Fail to init a builder to build gear image...")
+		// 4. push -gearmd镜像
+		mdImage := strings.TrimSuffix(imageRepo, "-gear") + "-gearmd" + ":" + imageTag
+	    cName := "docker"
+	    cArgs := []string{"push", mdImage}
+	    cCmd := exec.Command(cName, cArgs...)
+	    if err := cCmd.Run(); err != nil {
+	        fmt.Fprintln(os.Stderr, err)
+	        os.Exit(1)
+	    }
+	    fmt.Println("push", mdImage, "done!")
+
+		fmt.Println("Push ok!")
+	} else {
+		fmt.Println("Have built it!")
 	}
-	err = builder.Build(files)
-	if err != nil {
-		logger.Fatal("Fail to build gear image for %v", err)
-	}
-
-	// push -gearmd镜像
-	mdImage := strings.TrimSuffix(imageRepo, "-gear") + "-gearmd" + ":" + imageTag
-    cName := "docker"
-    cArgs := []string{"push", mdImage}
-    cCmd := exec.Command(cName, cArgs...)
-    if err := cCmd.Run(); err != nil {
-        fmt.Fprintln(os.Stderr, err)
-        os.Exit(1)
-    }
-    fmt.Println("push", mdImage, "done!")
-
-	// fmt.Println(image)
-	// fmt.Println(values["id"])
-	// fmt.Println(files)
-	fmt.Println("Push ok!")
 
 	// mnt.Client.ImageRemove(mnt.Ctx, )
 
 	return c.NoContent(http.StatusOK)
+}
+
+func check(repo, tag string) bool {
+	resp, err := http.Get("http://"+mnt.RegistryIp+":"+mnt.RegistryPort+"/v2/"+repo+"/tags/list")
+	if err != nil {
+		logger.Warnf("Fail to get tags of %s", repo)
+	}
+	rs, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.Warnf("Fail to read...")
+	}
+	type Tags struct {
+		Name string `json:"name"`
+		Tags []string `json:"tags"`
+	}
+	var tags Tags
+	json.Unmarshal(rs, &tags)
+
+	for _, btTag := range tags.Tags {
+		if btTag == tag {
+			return true
+		}
+	}
+
+	return false
 }
 
 func createGzip(files []string, gzipPath string, image string) error {

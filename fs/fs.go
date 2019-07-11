@@ -218,46 +218,6 @@ func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort st
 			}
 			defer resp.Body.Close()
 
-			// 先解压
-			// gFile, err := os.Create(filepath.Join(GearPublicCachePath, "tmpgzip"))
-			// if err != nil {
-			// 	logger.Warnf("Fail to create tmpgzip for %v", err)
-			// }
-
-			// _, err = io.Copy(gFile, resp.Body)
-			// if err != nil {
-			// 	logger.Warnf("Fail to copy gzipFile for %v", err)
-			// }
-
-			// gFile.Close()
-
-			// g, err := os.Open(filepath.Join(GearPublicCachePath, "tmpgzip"))
-			// if err != nil {
-			// 	logger.Warnf("Fail to open gzip for %v", err)
-			// }
-			// defer g.Close()
-
-			// gr, err := gzip.NewReader(g)
-			// if err != nil {
-			// 	logger.Warnf("Fail to new reader gzip for %v", err)
-			// }
-			// defer gr.Close()
-
-			// gContent, err := ioutil.ReadAll(gr)
-			// if err != nil {
-			// 	logger.Warnf("Fail to read gzip content for %v", err)
-			// }
-
-			// err = ioutil.WriteFile(filepath.Join(GearPublicCachePath, "tmp"), gContent, 0777)
-			// if err != nil {
-			// 	logger.Fatalf("Fail to write tmp file for %v", err)
-			// }
-
-			// f, err := os.Open(filepath.Join(GearPublicCachePath, "tmp"))
-			// if err != nil {
-			// 	logger.Warnf("Fail to open file for %v", err)
-			// }
-
 			tr := tar.NewReader(resp.Body)
 
 			for {
@@ -620,6 +580,7 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 		}
 		fileHandler.f = file
 
+		resp.Flags |= fuse.OpenKeepCache
 		return &fileHandler, nil
 	}
 
@@ -699,7 +660,9 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 			logger.Warnf("Fail to open file: %v", err)
 		}
 		fileHandler.f = file
+		fileHandler.filepath = filepath.Join(f.privateCachePath, f.privateCacheName)
 
+		resp.Flags |= fuse.OpenKeepCache
 		return &fileHandler, nil
 	}
 
@@ -708,16 +671,15 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 		logger.Warnf("Fail to open file: %v", err)
 	}
 	fileHandler.f = file
+	fileHandler.filepath = filepath.Join(f.indexImagePath, f.relativePath)
 
 	go func() {
-		if f.privateCacheName == "bd5ff" {
-			fmt.Println(f)
-		}
 		if monitorFlag {
 			RecordChan <- f.privateCacheName
 		}
 	}()
 	
+	resp.Flags |= fuse.OpenKeepCache
 	return &fileHandler, nil
 }
 
@@ -731,6 +693,8 @@ func (f *File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string,
 }
 
 type FileHandler struct {
+	filepath string
+
 	f *os.File
 }
 
@@ -740,7 +704,7 @@ func (fh *FileHandler) Release(ctx context.Context, req *fuse.ReleaseRequest) er
 }
 
 func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-
+	fmt.Println("fh.Read()!")
 	buf := make([]byte, req.Size)
 	n, err := fh.f.Read(buf)
 	resp.Data = buf[:n]
@@ -749,8 +713,18 @@ func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fu
 }
 
 func (fh *FileHandler) ReadAll(ctx context.Context) ([]byte, error) {
+	fmt.Println("fh.ReadAll()!")
 
-	data, err := ioutil.ReadAll(fh.f)
+	var data []byte
+	var err error
+
+	if fh.filepath != "" {
+		fmt.Println("Filepath: ", fh.filepath)
+		data, err = ioutil.ReadFile(fh.filepath)
+	} else {
+		fmt.Println("No filepath")
+		data, err = ioutil.ReadAll(fh.f)
+	}
 
 	return data, err
 }
