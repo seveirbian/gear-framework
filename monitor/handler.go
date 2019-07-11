@@ -76,6 +76,8 @@ func handleEvent(c echo.Context) error {
 }
 
 func check(repo, tag string) bool {
+	fmt.Println("FUCK!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
 	resp, err := http.Get("http://"+mnt.RegistryIp+":"+mnt.RegistryPort+"/v2/"+repo+"/tags/list")
 	if err != nil {
 		logger.Warnf("Fail to get tags of %s", repo)

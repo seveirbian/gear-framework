@@ -704,7 +704,7 @@ func (fh *FileHandler) Release(ctx context.Context, req *fuse.ReleaseRequest) er
 }
 
 func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-	fmt.Println("fh.Read()!")
+	// fmt.Println("fh.Read()!")
 	buf := make([]byte, req.Size)
 	n, err := fh.f.Read(buf)
 	resp.Data = buf[:n]
@@ -713,16 +713,16 @@ func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fu
 }
 
 func (fh *FileHandler) ReadAll(ctx context.Context) ([]byte, error) {
-	fmt.Println("fh.ReadAll()!")
+	// fmt.Println("fh.ReadAll()!")
 
 	var data []byte
 	var err error
 
 	if fh.filepath != "" {
-		fmt.Println("Filepath: ", fh.filepath)
+		// fmt.Println("Filepath: ", fh.filepath)
 		data, err = ioutil.ReadFile(fh.filepath)
 	} else {
-		fmt.Println("No filepath")
+		// fmt.Println("No filepath")
 		data, err = ioutil.ReadAll(fh.f)
 	}
 
