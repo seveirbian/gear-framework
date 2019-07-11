@@ -13,6 +13,7 @@ import (
 	"archive/tar"
 	"math/rand"
 	"path/filepath"
+	"encoding/json"
 
 	"github.com/labstack/echo"
 	// gzip "github.com/klauspost/pgzip"
