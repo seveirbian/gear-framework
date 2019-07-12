@@ -113,6 +113,15 @@ func (p *Pusher) Push() {
     }
 
     fmt.Println("Push OK!")
+
+    fmt.Println("Cleaning up dir: ", p.GFilesDir)
+
+    err = os.RemoveAll(p.GFilesDir)
+    if err != nil {
+    	logger.Warnf("Fail to remove all files under p.GFilesDir for %v", err)
+    }
+
+    fmt.Println("Clean up OK!")
 }
 
 func ParseImage(image string) (imageName string, imageTag string) {
