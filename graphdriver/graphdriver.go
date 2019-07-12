@@ -24,6 +24,7 @@ import (
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/seveirbian/gear/pkg"
 	"github.com/seveirbian/gear/fs"
+	"github.com/seveirbian/gear/types"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/chrootarchive"
 	"github.com/docker/docker/pkg/containerfs"
@@ -246,8 +247,9 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 			// 判断是否需要监控gearfs
 			needMonitor := false
 
-			recordFilesChan := make(chan string, 100)
-			recordFileNamesChan := make(chan string, 100)
+			recordChan := make(chan types.MonitorFile, 100)
+			// recordFilesChan := make(chan string, 100)
+			// recordFileNamesChan := make(chan string, 100)
 
 			initLayerPath := ""
 			if !strings.Contains(id, "-init") {
@@ -290,13 +292,13 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 
 					for {
 						select {
-						case file := <- recordFilesChan:
-							name := <- recordFileNamesChan
-							if _, ok := dupFiles[file]; !ok {
-								dupFiles[file] = true
-								recordFiles = append(recordFiles, file)
-								recordFileNames = append(recordFileNames, name)
+						case file := <- recordChan:
+							if _, ok := dupFiles[file.Hash]; !ok {
+								dupFiles[file.Hash] = true
+								recordFiles = append(recordFiles, file.Hash)
+								recordFileNames = append(recordFileNames, file.RelativePath)
 							}
+							// TODO: 对于软连接或者多个文件指向同一个哈希文件的情况
 						case <- t.C:
 							// 向manager汇报
 							v := url.Values{"files": recordFiles, "filenames": recordFileNames, "image": []string{gearImage}}
@@ -315,6 +317,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 								if err != nil {
 									logger.Warnf("Fail to write recordfiles for %v", err)
 								}
+
 							}
 
 							resp, err := http.PostForm("http://"+d.MonitorIp+":"+d.MonitorPort+"/event", v)
@@ -333,31 +336,33 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 			} else {
 				if !strings.Contains(id, "-init") {
 					// 判断是否存在prefetched文件
-					_, err := os.Lstat(filepath.Join(gearPath, "gear-diff", "prefetched"))
+					files := []string{}
+					tamplate := map[string]string{}
+
+					b, err := ioutil.ReadFile(filepath.Join(gearPath, "gear-diff", "RecordFiles"))
 					if err != nil {
-						t := time.Now()
-						b, err := ioutil.ReadFile(filepath.Join(gearPath, "gear-diff", "RecordFiles"))
-						if err != nil {
-							logger.Warnf("Fail to read file for %v", err)
-						}
-						values := string(b)
+						logger.Warnf("Fail to read file for %v", err)
+					}
+					values := string(b)	
+					nameAndFiles := strings.Split(values, "\n")
 
-						nameAndFiles := strings.Split(values, "\n")
+					tmp := []string{}
 
-						tmp := []string{}
-
-						tamplate := map[string]string{}
-
-						for _, nameAndFile := range nameAndFiles {
-							c := strings.Split(nameAndFile, " ")
+					for _, nameAndFile := range nameAndFiles {
+						c := strings.Split(nameAndFile, " ")
+						if c[1] != "" {
 							tmp = append(tmp, c[1])
 
 							if _, ok := tamplate[c[1]]; !ok {
-								tamplate[c[1]] = tamplate[c[0]]
+								tamplate[c[1]] = c[0]
 							}
-						}
+						}						
+					}
+					files = tmp
 
-						files := tmp
+					_, err = os.Lstat(filepath.Join(gearPath, "gear-diff", "prefetched"))
+					if err != nil {
+						t := time.Now()
 
 						needToDownloadFiles := []string{}
 
@@ -411,36 +416,6 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 							}
 						}
 
-						// 将文件link到-init层目录
-						if initLayerPath != "" {
-							// 将文件link到-init层目录
-							for _, file := range files {
-								relativePath, ok := tamplate[file]
-								if !ok {
-									continue
-								}
-								_, err = os.Lstat(filepath.Join(initLayerPath, relativePath))
-								if err != nil {
-									initDir := goPath.Dir(filepath.Join(initLayerPath, relativePath))
-									_, err = os.Lstat(initDir)
-									if err != nil {
-										err := os.MkdirAll(initDir, os.ModePerm)
-										if err != nil {
-											logger.Warnf("Fail to create initDir for %v", err)
-										}
-									}
-									err = os.Link(filepath.Join("/var/lib/gear/public", file), filepath.Join(initLayerPath, relativePath))
-									if err != nil {
-										logger.Fatalf("Fail to create hard link for %v", err)
-									}
-									err = os.Chmod(filepath.Join(initLayerPath, relativePath), 0777)
-									if err != nil {
-										logger.Warnf("Fail to chmod file for %v", err)
-									}
-								}
-							}
-						}
-
 						_, err = os.Create(filepath.Join(gearGearDir, "prefetched"))
 						if err != nil {
 							logger.Warnf("Fail to create file for %v", err)
@@ -448,6 +423,39 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 
 						fmt.Println("Time used: ", time.Since(t))
 					} 
+
+					// 将文件link到-init层目录
+					lt := time.Now()
+					fmt.Println(lt)
+					if initLayerPath != "" {
+						// 将文件link到-init层目录
+						for _, file := range files {
+							relativePath, ok := tamplate[file]
+							if !ok {
+								continue
+							}
+							_, err = os.Lstat(filepath.Join(initLayerPath, relativePath))
+							if err != nil {
+								initDir := goPath.Dir(filepath.Join(initLayerPath, relativePath))
+								_, err = os.Lstat(initDir)
+								if err != nil {
+									err := os.MkdirAll(initDir, os.ModePerm)
+									if err != nil {
+										logger.Warnf("Fail to create initDir for %v", err)
+									}
+								}
+								err = os.Link(filepath.Join("/var/lib/gear/public", file), filepath.Join(initLayerPath, relativePath))
+								if err != nil {
+									logger.Fatalf("Fail to create hard link for %v", err)
+								}
+								err = os.Chmod(filepath.Join(initLayerPath, relativePath), 0777)
+								if err != nil {
+									logger.Warnf("Fail to chmod file for %v", err)
+								}
+							}
+						}
+					}
+					fmt.Println(time.Since(lt))
 				}
 			}
 
@@ -461,8 +469,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 				ManagerIp: d.ManagerIp, 
 				ManagerPort: d.ManagerPort, 
 
-				RecordChan: recordFilesChan, 
-				RecordNameChan: recordFileNamesChan, 
+				RecordChan: recordChan, 
 
 				InitLayerPath: initLayerPath, 
 			}

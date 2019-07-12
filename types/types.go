@@ -42,3 +42,8 @@ type Image struct {
 	Repository string
 	Tag string
 }
+
+type MonitorFile struct {
+	Hash string
+	RelativePath string
+}

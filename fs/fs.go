@@ -23,6 +23,7 @@ import (
 	fuseFS "bazil.org/fuse/fs"
 	"golang.org/x/net/context"
 	"github.com/sirupsen/logrus"
+	"github.com/seveirbian/gear/types"
 )
 
 var (
@@ -35,8 +36,7 @@ var (
 	ManagerIp   string
 	ManagerPort string
 
-	RecordChan chan string
-	RecordNameChan chan string
+	RecordChan chan types.MonitorFile
 )
 
 type GearFS struct {
@@ -49,8 +49,7 @@ type GearFS struct {
 	ManagerIp string
 	ManagerPort string
 
-	RecordChan chan string
-	RecordNameChan chan string 
+	RecordChan chan types.MonitorFile
 
 	InitLayerPath string
 }
@@ -96,7 +95,7 @@ func (g * GearFS) Start() {
 	}(c)
 
 	// 4. 初始化fuse文件系统
-	filesys := Init(indexImagePath, privateCachePath, upperPath, g.InitLayerPath, g.ManagerIp, g.ManagerPort, g.RecordChan, g.RecordNameChan)
+	filesys := Init(indexImagePath, privateCachePath, upperPath, g.InitLayerPath, g.ManagerIp, g.ManagerPort, g.RecordChan)
 
 	// 5. 使用fuse文件系统服务挂载点的fuse连接
 	if err := fuseFS.Serve(c, filesys); err != nil {
@@ -153,7 +152,7 @@ func (g * GearFS) StartAndNotify(notify chan int, monitor bool) {
 	}(c)
 
 	// 4. 初始化fuse文件系统
-	filesys := Init(indexImagePath, privateCachePath, upperPath, g.InitLayerPath, g.ManagerIp, g.ManagerPort, g.RecordChan, g.RecordNameChan)
+	filesys := Init(indexImagePath, privateCachePath, upperPath, g.InitLayerPath, g.ManagerIp, g.ManagerPort, g.RecordChan)
 
 	// 5. 使用fuse文件系统服务挂载点的fuse连接
 	notify <- 1
@@ -167,11 +166,10 @@ func (g * GearFS) StartAndNotify(notify chan int, monitor bool) {
 	}
 }
 
-func Init(indexImagePath, privateCachePath, upperPath, initLayerPath, managerIp, managerPort string, rChan chan string, nChan chan string) *FS {
+func Init(indexImagePath, privateCachePath, upperPath, initLayerPath, managerIp, managerPort string, rChan chan types.MonitorFile) *FS {
 	ManagerIp = managerIp
 	ManagerPort = managerPort
 	RecordChan = rChan
-	RecordNameChan = nChan
 
 	return &FS{
 		IndexImagePath: indexImagePath,
@@ -332,6 +330,8 @@ type File struct {
 }
 
 func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
+	fmt.Println("Attr()!")
+	fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
 	// 首先查看上层目录是否已经存在该文件
 	upperFileInfo, err := os.Lstat(filepath.Join(f.upperPath, f.relativePath))
 	if err == nil {
@@ -515,12 +515,16 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	// fmt.Println("f.Attr< ", attr, " >")
 
 	go func() {
-		if f.privateCacheName == "bd5ff" {
-			fmt.Println(f)
-		}
 		if monitorFlag {
-			RecordChan <- f.privateCacheName
-			RecordNameChan <- f.relativePath
+			if f.privateCacheName != "" {
+				RecordChan <- types.MonitorFile {
+					Hash: f.privateCacheName, 
+					RelativePath: f.relativePath, 
+				}
+			} else {
+				fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
+			}
+			
 		}
 	}()
 
@@ -532,7 +536,8 @@ func (f *File) Access(ctx context.Context, req *fuse.AccessRequest) error {
 }
 
 func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
-
+	// fmt.Println("Attr()!")
+	// fmt.Println(f)
 	var fileHandler = FileHandler{}
 
 	// 首先查看上层目录是否已经存在该文件
@@ -551,8 +556,13 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 
 	// 否则，再判断是否是普通文件，是否需要下载等等
 	if f.isRegular {
+		name, err := ioutil.ReadFile(filepath.Join(f.indexImagePath, f.relativePath))
+		if err != nil {
+			logger.Warnf("Fail to read filename")
+		}
+		f.privateCacheName = string(name)
 		// 1. 检查该镜像的私有缓存中是否存在cid文件
-		_, err := os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
+		_, err = os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 		if err != nil {
 			// 检测public cache中是否存在该文件
 			_, err := os.Lstat(filepath.Join("/var/lib/gear/public", f.privateCacheName))
@@ -683,8 +693,14 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 
 	go func() {
 		if monitorFlag {
-			RecordChan <- f.privateCacheName
-			RecordNameChan <- f.relativePath
+			if f.privateCacheName != "" {
+				RecordChan <- types.MonitorFile {
+					Hash: f.privateCacheName, 
+					RelativePath: f.relativePath, 
+				}
+			} else {
+				fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
+			}
 		}
 	}()
 	
@@ -713,7 +729,7 @@ func (fh *FileHandler) Release(ctx context.Context, req *fuse.ReleaseRequest) er
 }
 
 func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-	// fmt.Println("fh.Read()!")
+	 // fmt.Println("fh.Read()!")
 	buf := make([]byte, req.Size)
 	n, err := fh.f.Read(buf)
 	resp.Data = buf[:n]
@@ -722,7 +738,6 @@ func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fu
 }
 
 func (fh *FileHandler) ReadAll(ctx context.Context) ([]byte, error) {
-	// fmt.Println("fh.ReadAll()!")
 
 	var data []byte
 	var err error
