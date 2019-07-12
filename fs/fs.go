@@ -4,12 +4,13 @@ import (
 	"os"
 	"io"
 	"fmt"
-	"archive/tar"
+	"path"
+	// "archive/tar"
 	gzip "github.com/klauspost/pgzip"
 	"time"
 	// "errors"
 	// "reflect"
-	"strings"
+	// "strings"
 	"syscall"
 	"net/url"
 	"net/http"
@@ -35,6 +36,7 @@ var (
 	ManagerPort string
 
 	RecordChan chan string
+	RecordNameChan chan string
 )
 
 type GearFS struct {
@@ -48,6 +50,9 @@ type GearFS struct {
 	ManagerPort string
 
 	RecordChan chan string
+	RecordNameChan chan string 
+
+	InitLayerPath string
 }
 
 func (g * GearFS) Start() {
@@ -91,7 +96,7 @@ func (g * GearFS) Start() {
 	}(c)
 
 	// 4. 初始化fuse文件系统
-	filesys := Init(indexImagePath, privateCachePath, upperPath, g.ManagerIp, g.ManagerPort, g.RecordChan)
+	filesys := Init(indexImagePath, privateCachePath, upperPath, g.InitLayerPath, g.ManagerIp, g.ManagerPort, g.RecordChan, g.RecordNameChan)
 
 	// 5. 使用fuse文件系统服务挂载点的fuse连接
 	if err := fuseFS.Serve(c, filesys); err != nil {
@@ -148,7 +153,7 @@ func (g * GearFS) StartAndNotify(notify chan int, monitor bool) {
 	}(c)
 
 	// 4. 初始化fuse文件系统
-	filesys := Init(indexImagePath, privateCachePath, upperPath, g.ManagerIp, g.ManagerPort, g.RecordChan)
+	filesys := Init(indexImagePath, privateCachePath, upperPath, g.InitLayerPath, g.ManagerIp, g.ManagerPort, g.RecordChan, g.RecordNameChan)
 
 	// 5. 使用fuse文件系统服务挂载点的fuse连接
 	notify <- 1
@@ -162,110 +167,17 @@ func (g * GearFS) StartAndNotify(notify chan int, monitor bool) {
 	}
 }
 
-func Init(indexImagePath, privateCachePath, upperPath, managerIp, managerPort string, rChan chan string) *FS {
+func Init(indexImagePath, privateCachePath, upperPath, initLayerPath, managerIp, managerPort string, rChan chan string, nChan chan string) *FS {
 	ManagerIp = managerIp
 	ManagerPort = managerPort
 	RecordChan = rChan
-	// 对第二次启动实现加速
-	// 0. 获取待启动镜像名
-	image, err := os.Readlink(filepath.Join(indexImagePath, "gear-image"))
-	if err != nil {
-		logger.Warnf("Fail to read image name for %v", err)
-	}
-
-	// 1. 首先判断在gear-diff目录下是否存在RecordFiles文件
-	_, err = os.Lstat(filepath.Join(indexImagePath, "RecordFiles"))
-	if err != nil {
-		// 不存在
-	}else {
-		// 存在
-		t := time.Now()
-
-		_, err := os.Lstat(filepath.Join(indexImagePath, "prefetched"))
-		if err != nil {
-			b, err := ioutil.ReadFile(filepath.Join(indexImagePath, "RecordFiles"))
-			if err != nil {
-				logger.Warnf("Fail to read file for %v", err)
-			}
-			values := string(b)
-
-			files := strings.Split(values, " ")
-
-			tmp := []string{}
-			for _, file := range files {
-				if file != "" {
-					tmp = append(tmp, file)
-				}
-			}
-
-			files = tmp
-
-			needToDownloadFiles := []string{}
-
-			for _, file := range files {
-				_, err := os.Lstat(filepath.Join(GearPublicCachePath, file))
-				if err != nil {
-					needToDownloadFiles = append(needToDownloadFiles, file)
-				}
-			}
-
-			v := url.Values{"files": needToDownloadFiles, "image": []string{image}}
-
-
-			resp, err := http.PostForm("http://"+managerIp+":"+managerPort+"/prefetch", v)
-			if err != nil {
-				logger.Warnf("Fail to prefetch for %v", err)
-			}
-			defer resp.Body.Close()
-
-			tr := tar.NewReader(resp.Body)
-
-			for {
-				th, err := tr.Next()
-				if err == io.EOF {
-					break;
-				}
-
-				tgt, err := os.Create(filepath.Join(GearPublicCachePath, th.Name))
-				if err != nil {
-					logger.Warnf("Fail to create tgt file for %v", err)
-				}
-
-				gr, err := gzip.NewReader(tr)
-
-				_, err = io.Copy(tgt, gr)
-				if err != nil {
-					logger.Fatalf("Fail to copy for %v", err)
-				}
-
-				gr.Close()
-				tgt.Close()
-
-				err = os.Link(filepath.Join(GearPublicCachePath, th.Name), filepath.Join(privateCachePath, th.Name))
-				if err != nil {
-					logger.Fatalf("Fail to create hard link for %v", err)
-				}
-
-				// 设置文件权限
-				err = os.Chmod(filepath.Join(privateCachePath, th.Name), 0777)
-				if err != nil {
-					logger.Warnf("Fail to chmod file for %v", err)
-				}
-			}
-
-			_, err = os.Create(filepath.Join(indexImagePath, "prefetched"))
-			if err != nil {
-				logger.Warnf("Fail to create file for %v", err)
-			}
-
-			fmt.Println("Time used: ", time.Since(t))
-		}
-	}
+	RecordNameChan = nChan
 
 	return &FS{
 		IndexImagePath: indexImagePath,
 		PrivateCachePath: privateCachePath, 
 		UpperPath: upperPath, 
+		InitLayerPath: initLayerPath, 
 	}
 }
 
@@ -273,6 +185,8 @@ type FS struct {
 	IndexImagePath string
 	PrivateCachePath string
 	UpperPath string
+
+	InitLayerPath string
 }
 
 func (f *FS) Root() (fs.Node, error) {
@@ -283,6 +197,7 @@ func (f *FS) Root() (fs.Node, error) {
 		upperPath: f.UpperPath, 
 
 		relativePath: "/", 
+		initLayerPath: f.InitLayerPath, 
 	}
 
 	return n, nil
@@ -294,6 +209,8 @@ type Dir struct {
 	upperPath string
 
 	relativePath string
+
+	initLayerPath string
 }
 
 // TODO: 实际获取每个目录的属性
@@ -303,7 +220,7 @@ func (d *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
 		logger.Warnf("Fail to lstat dir.attr for %v", err)
 	}
 
-	attr.Valid = 30 * 24 * time.Hour
+	attr.Valid = 1 * time.Second
 	attr.Inode = dirInfo.Sys().(*syscall.Stat_t).Ino
 	attr.Size = uint64(dirInfo.Size())
 	attr.Blocks = uint64(dirInfo.Sys().(*syscall.Stat_t).Blocks)
@@ -366,6 +283,7 @@ func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.Lo
 			privateCachePath: d.privateCachePath, 
 			upperPath: d.upperPath, 
 			relativePath: filepath.Join(d.relativePath, req.Name), 
+			initLayerPath: d.initLayerPath, 
 		}
 		return child, nil
 	} else {
@@ -376,6 +294,7 @@ func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.Lo
 				privateCachePath: d.privateCachePath, 
 				upperPath: d.upperPath, 
 				relativePath: filepath.Join(d.relativePath, req.Name), 
+				initLayerPath: d.initLayerPath, 
 			}
 			return child, nil
 		} else {
@@ -385,6 +304,7 @@ func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.Lo
 				privateCachePath: d.privateCachePath, 
 				upperPath: d.upperPath, 
 				relativePath: filepath.Join(d.relativePath, req.Name), 
+				initLayerPath: d.initLayerPath, 
 			}
 			return child, nil
 		}
@@ -407,6 +327,8 @@ type File struct {
 	relativePath string
 
 	privateCacheName string
+
+	initLayerPath string
 }
 
 func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
@@ -414,7 +336,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	upperFileInfo, err := os.Lstat(filepath.Join(f.upperPath, f.relativePath))
 	if err == nil {
 		// 是的话就返回upper目录的文件信息
-		attr.Valid = 30 * 24 * time.Hour
+		attr.Valid = 1 * time.Second
 		attr.Inode = upperFileInfo.Sys().(*syscall.Stat_t).Ino
 		attr.Size = uint64(upperFileInfo.Size())
 		attr.Blocks = uint64(upperFileInfo.Sys().(*syscall.Stat_t).Blocks)
@@ -453,6 +375,27 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 					if err != nil {
 						logger.Fatalf("Fail to create hard link for %v", err)
 					}
+					// 判断当前目录是否是镜像层还是-init层
+					// 如果是镜像层，则将创建文件硬链接到-init层
+					// 如果是-init层，则啥都不做
+					if f.initLayerPath != "" {
+						// 将文件link到-init层目录
+						_, err = os.Lstat(filepath.Join(f.initLayerPath, f.relativePath))
+						if err != nil {
+							initDir := path.Dir(filepath.Join(f.initLayerPath, f.relativePath))
+							_, err = os.Lstat(initDir)
+							if err != nil {
+								err := os.MkdirAll(initDir, os.ModePerm)
+								if err != nil {
+									logger.Warnf("Fail to create initDir for %v", err)
+								}
+							}
+							err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.initLayerPath, f.relativePath))
+							if err != nil {
+								logger.Fatalf("Fail to create hard link for %v", err)
+							}
+						}
+					}
 				}
 			} else {
 				// 从manager节点下载cid文件
@@ -490,6 +433,27 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 				if err != nil {
 					logger.Fatalf("Fail to create hard link for %v", err)
 				}
+				// 判断当前目录是否是镜像层还是-init层
+				// 如果是镜像层，则将创建文件硬链接到-init层
+				// 如果是-init层，则啥都不做
+				if f.initLayerPath != "" {
+					// 将文件link到-init层目录
+					_, err = os.Lstat(filepath.Join(f.initLayerPath, f.relativePath))
+					if err != nil {
+						initDir := path.Dir(filepath.Join(f.initLayerPath, f.relativePath))
+						_, err = os.Lstat(initDir)
+						if err != nil {
+							err := os.MkdirAll(initDir, os.ModePerm)
+							if err != nil {
+								logger.Warnf("Fail to create initDir for %v", err)
+							}
+						}
+						err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.initLayerPath, f.relativePath))
+						if err != nil {
+							logger.Fatalf("Fail to create hard link for %v", err)
+						}
+					}
+				}
 			}
 
 			// 修改文件的权限
@@ -519,7 +483,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 			logger.Warnf("Fail to get index file info for %v", err)
 		}
 
-		attr.Valid = 30 * 24 * time.Hour
+		attr.Valid = 1 * time.Second
 		attr.Inode = IndexFileInfo.Sys().(*syscall.Stat_t).Ino
 		attr.Blocks = uint64(IndexFileInfo.Sys().(*syscall.Stat_t).Blocks)
 		attr.Mtime = IndexFileInfo.ModTime()
@@ -534,7 +498,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 			logger.Warnf("Cannot stat file: %v", err)
 		}
 
-		attr.Valid = 30 * 24 * time.Hour
+		attr.Valid = 1 * time.Second
 		attr.Inode = IndexFileInfo.Sys().(*syscall.Stat_t).Ino
 		attr.Size = uint64(IndexFileInfo.Size())
 		attr.Blocks = uint64(IndexFileInfo.Sys().(*syscall.Stat_t).Blocks)
@@ -556,6 +520,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 		}
 		if monitorFlag {
 			RecordChan <- f.privateCacheName
+			RecordNameChan <- f.relativePath
 		}
 	}()
 
@@ -600,6 +565,27 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 					if err != nil {
 						logger.Fatalf("Fail to create hard link for %v", err)
 					}
+					// 判断当前目录是否是镜像层还是-init层
+					// 如果是镜像层，则将创建文件硬链接到-init层
+					// 如果是-init层，则啥都不做
+					if f.initLayerPath != "" {
+						// 将文件link到-init层目录
+						_, err = os.Lstat(filepath.Join(f.initLayerPath, f.relativePath))
+						if err != nil {
+							initDir := path.Dir(filepath.Join(f.initLayerPath, f.relativePath))
+							_, err = os.Lstat(initDir)
+							if err != nil {
+								err := os.MkdirAll(initDir, os.ModePerm)
+								if err != nil {
+									logger.Warnf("Fail to create initDir for %v", err)
+								}
+							}
+							err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.initLayerPath, f.relativePath))
+							if err != nil {
+								logger.Fatalf("Fail to create hard link for %v", err)
+							}
+						}
+					}
 				}
 			} else {
 				// 从manager节点下载cid文件
@@ -636,6 +622,28 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
 				if err != nil {
 					logger.Fatalf("Fail to create hard link for %v", err)
+				}
+
+				// 判断当前目录是否是镜像层还是-init层
+				// 如果是镜像层，则将创建文件硬链接到-init层
+				// 如果是-init层，则啥都不做
+				if f.initLayerPath != "" {
+					// 将文件link到-init层目录
+					_, err = os.Lstat(filepath.Join(f.initLayerPath, f.relativePath))
+					if err != nil {
+						initDir := path.Dir(filepath.Join(f.initLayerPath, f.relativePath))
+						_, err = os.Lstat(initDir)
+						if err != nil {
+							err := os.MkdirAll(initDir, os.ModePerm)
+							if err != nil {
+								logger.Warnf("Fail to create initDir for %v", err)
+							}
+						}
+						err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.initLayerPath, f.relativePath))
+						if err != nil {
+							logger.Fatalf("Fail to create hard link for %v", err)
+						}
+					}
 				}
 			}
 
@@ -676,6 +684,7 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 	go func() {
 		if monitorFlag {
 			RecordChan <- f.privateCacheName
+			RecordNameChan <- f.relativePath
 		}
 	}()
 	

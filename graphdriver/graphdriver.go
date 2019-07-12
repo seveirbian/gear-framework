@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
+	goPath "path"
 	"time"
 	"os/exec"
 	"path/filepath"
@@ -17,7 +17,8 @@ import (
 	"net/url"
 	"strings"
 	// "time"
-	// "archive/tar"
+	"archive/tar"
+	"compress/gzip"
 	"io/ioutil"
 	// "strconv"
 	"github.com/docker/docker/pkg/ioutils"
@@ -246,6 +247,22 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 			needMonitor := false
 
 			recordFilesChan := make(chan string, 100)
+			recordFileNamesChan := make(chan string, 100)
+
+			initLayerPath := ""
+			if !strings.Contains(id, "-init") {
+				// 读取镜像层中lower文件内容
+				data, err := ioutil.ReadFile(filepath.Join(d.home, id, "lower"))
+				if err != nil {
+					logger.Warnf("Fail to read lower file for %v", err)
+				}
+				// 获取-init目录
+				dataSlices := strings.Split(string(data), ":")
+				lPath := dataSlices[0]
+				initLayerDir, err := os.Readlink(filepath.Join(d.home, lPath))
+				initLayerPath = filepath.Join(d.home, id, initLayerDir)
+				fmt.Println(initLayerPath)
+			}
 
 			_, err = os.Lstat(filepath.Join(gearPath, "gear-diff", "RecordFiles"))
 			if err != nil {
@@ -253,6 +270,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 				logger.Warnf("Monitoring...")
 				needMonitor = true
 
+				recordFileNames := []string{}
 				recordFiles := []string{}
 
 				go func() {
@@ -273,22 +291,38 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 					for {
 						select {
 						case file := <- recordFilesChan:
+							name := <- recordFileNamesChan
 							if _, ok := dupFiles[file]; !ok {
 								dupFiles[file] = true
 								recordFiles = append(recordFiles, file)
+								recordFileNames = append(recordFileNames, name)
 							}
 						case <- t.C:
 							// 向manager汇报
-							v := url.Values{"files": recordFiles, "image": []string{gearImage}}
+							v := url.Values{"files": recordFiles, "filenames": recordFileNames, "image": []string{gearImage}}
 
-							fmt.Println(v)
+							// 在本地创建RecordFiles文件
+							if len(recordFiles) != len(recordFileNames) {
+								logger.Warnf("Something went error that len(recordFiles) != len(recordFileNames)")
+							} else {
+								content := ""
+								for i := 0; i < len(recordFiles) - 1; i++ {
+									content = content+recordFileNames[i]+" "+recordFiles[i]+"\n"
+								}
+								content = content+recordFileNames[len(recordFiles)-1]+" "+recordFiles[len(recordFiles)-1]
+
+								err = ioutil.WriteFile(filepath.Join(gearPath, "gear-diff", "RecordFiles"), []byte(content), os.ModePerm)
+								if err != nil {
+									logger.Warnf("Fail to write recordfiles for %v", err)
+								}
+							}
 
 							resp, err := http.PostForm("http://"+d.MonitorIp+":"+d.MonitorPort+"/event", v)
 							if err != nil {
 								logger.Warnf("Fail to report to monitor for %v", err)
 							}
 
-							fmt.Println(resp.StatusCode)
+							fmt.Println("send event!")
 
 							defer resp.Body.Close()
 
@@ -296,6 +330,125 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 						}
 					}
 				}()
+			} else {
+				if !strings.Contains(id, "-init") {
+					// 判断是否存在prefetched文件
+					_, err := os.Lstat(filepath.Join(gearPath, "gear-diff", "prefetched"))
+					if err != nil {
+						t := time.Now()
+						b, err := ioutil.ReadFile(filepath.Join(gearPath, "gear-diff", "RecordFiles"))
+						if err != nil {
+							logger.Warnf("Fail to read file for %v", err)
+						}
+						values := string(b)
+
+						nameAndFiles := strings.Split(values, "\n")
+
+						tmp := []string{}
+
+						tamplate := map[string]string{}
+
+						for _, nameAndFile := range nameAndFiles {
+							c := strings.Split(nameAndFile, " ")
+							tmp = append(tmp, c[1])
+
+							if _, ok := tamplate[c[1]]; !ok {
+								tamplate[c[1]] = tamplate[c[0]]
+							}
+						}
+
+						files := tmp
+
+						needToDownloadFiles := []string{}
+
+						for _, file := range files {
+							_, err := os.Lstat(filepath.Join(GearPublicCachePath, file))
+							if err != nil {
+								needToDownloadFiles = append(needToDownloadFiles, file)
+							}
+						}
+
+						v := url.Values{"files": needToDownloadFiles, "image": []string{gearImage}}
+
+						resp, err := http.PostForm("http://"+d.ManagerIp+":"+d.ManagerPort+"/prefetch", v)
+						if err != nil {
+							logger.Warnf("Fail to prefetch for %v", err)
+						}
+						defer resp.Body.Close()
+
+						tr := tar.NewReader(resp.Body)
+
+						for {
+							th, err := tr.Next()
+							if err == io.EOF {
+								break;
+							}
+
+							tgt, err := os.Create(filepath.Join(GearPublicCachePath, th.Name))
+							if err != nil {
+								logger.Warnf("Fail to create tgt file for %v", err)
+							}
+
+							gr, err := gzip.NewReader(tr)
+
+							_, err = io.Copy(tgt, gr)
+							if err != nil {
+								logger.Fatalf("Fail to copy for %v", err)
+							}
+
+							gr.Close()
+							tgt.Close()
+
+							err = os.Link(filepath.Join(GearPublicCachePath, th.Name), filepath.Join(gearImagePrivateCache, th.Name))
+							if err != nil {
+								logger.Fatalf("Fail to create hard link for %v", err)
+							}
+
+							// 设置文件权限
+							err = os.Chmod(filepath.Join(gearImagePrivateCache, th.Name), 0777)
+							if err != nil {
+								logger.Warnf("Fail to chmod file for %v", err)
+							}
+						}
+
+						// 将文件link到-init层目录
+						if initLayerPath != "" {
+							// 将文件link到-init层目录
+							for _, file := range files {
+								relativePath, ok := tamplate[file]
+								if !ok {
+									continue
+								}
+								_, err = os.Lstat(filepath.Join(initLayerPath, relativePath))
+								if err != nil {
+									initDir := goPath.Dir(filepath.Join(initLayerPath, relativePath))
+									_, err = os.Lstat(initDir)
+									if err != nil {
+										err := os.MkdirAll(initDir, os.ModePerm)
+										if err != nil {
+											logger.Warnf("Fail to create initDir for %v", err)
+										}
+									}
+									err = os.Link(filepath.Join("/var/lib/gear/public", file), filepath.Join(initLayerPath, relativePath))
+									if err != nil {
+										logger.Fatalf("Fail to create hard link for %v", err)
+									}
+									err = os.Chmod(filepath.Join(initLayerPath, relativePath), 0777)
+									if err != nil {
+										logger.Warnf("Fail to chmod file for %v", err)
+									}
+								}
+							}
+						}
+
+						_, err = os.Create(filepath.Join(gearGearDir, "prefetched"))
+						if err != nil {
+							logger.Warnf("Fail to create file for %v", err)
+						}
+
+						fmt.Println("Time used: ", time.Since(t))
+					} 
+				}
 			}
 
 			// 5. 将/gear目录使用gear fs挂载到/diff目录下
@@ -309,6 +462,9 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 				ManagerPort: d.ManagerPort, 
 
 				RecordChan: recordFilesChan, 
+				RecordNameChan: recordFileNamesChan, 
+
+				InitLayerPath: initLayerPath, 
 			}
 
 			notify := make(chan int)
@@ -380,7 +536,7 @@ func (d *Driver) Exists(id string) bool {
 	fmt.Printf("\nExists func parameters: \n")
 	fmt.Printf("  id: %s\n", id)
 
-	_, err := os.Stat(path.Join(d.home, id))
+	_, err := os.Stat(goPath.Join(d.home, id))
 	return err == nil
 }
 

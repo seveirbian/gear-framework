@@ -39,6 +39,7 @@ func handleEvent(c echo.Context) error {
 
 	// 2. 获取文件
 	files := values["files"]
+	names := values["filenames"]
 
 	fmt.Println("image name: ", image)
 
@@ -49,7 +50,7 @@ func handleEvent(c echo.Context) error {
 		if err != nil {
 			logger.Fatal("Fail to init a builder to build gear image...")
 		}
-		err = builder.Build(files)
+		err = builder.Build(files, names)
 		if err != nil {
 			logger.Fatal("Fail to build gear image for %v", err)
 		}
@@ -93,10 +94,10 @@ func check(repo, tag string) bool {
 	var tags Tags
 	json.Unmarshal(rs, &tags)
 
-	fmt.Println(tags)
+	// fmt.Println(tags)
 
 	for _, btTag := range tags.Tags {
-		fmt.Println(repo, "  ", tag, "  ", btTag)
+		// fmt.Println(repo, "  ", tag, "  ", btTag)
 		if btTag == tag {
 			return true
 		}
