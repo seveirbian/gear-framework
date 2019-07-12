@@ -330,8 +330,8 @@ type File struct {
 }
 
 func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
-	fmt.Println("Attr()!")
-	fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
+	// fmt.Println("Attr()!")
+	// fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
 	// 首先查看上层目录是否已经存在该文件
 	upperFileInfo, err := os.Lstat(filepath.Join(f.upperPath, f.relativePath))
 	if err == nil {
@@ -522,7 +522,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 					RelativePath: f.relativePath, 
 				}
 			} else {
-				fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
+				// fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
 			}
 			
 		}
@@ -699,7 +699,7 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 					RelativePath: f.relativePath, 
 				}
 			} else {
-				fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
+				// fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
 			}
 		}
 	}()

@@ -54,10 +54,13 @@ var (
 
 var (
 	// 监控gearfs的时间
-	monitorTime = 60
+	monitorTime = 600
 
 	// 监测是否是第二次挂载容器层
 	secondGet = map[string]bool{}
+
+	// 监控gearfs关闭
+	umountGearFs = map[string]chan time.Time{}
 )
 
 var (
@@ -288,6 +291,11 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 					fmt.Println("Monitoring...")
 					t := time.NewTimer(time.Duration(monitorTime) * time.Second)
 
+					reportChan := make(chan time.Time)
+					if _, ok := umountGearFs[id]; !ok {
+						umountGearFs[id] = reportChan
+					}
+
 					dupFiles := map[string]bool{}
 
 					for {
@@ -328,6 +336,41 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 							fmt.Println("send event!")
 
 							defer resp.Body.Close()
+
+							delete(umountGearFs, id)
+
+							break
+						case <- umountGearFs[id]:
+							// 向manager汇报
+							v := url.Values{"files": recordFiles, "filenames": recordFileNames, "image": []string{gearImage}}
+
+							// 在本地创建RecordFiles文件
+							if len(recordFiles) != len(recordFileNames) {
+								logger.Warnf("Something went error that len(recordFiles) != len(recordFileNames)")
+							} else {
+								content := ""
+								for i := 0; i < len(recordFiles) - 1; i++ {
+									content = content+recordFileNames[i]+" "+recordFiles[i]+"\n"
+								}
+								content = content+recordFileNames[len(recordFiles)-1]+" "+recordFiles[len(recordFiles)-1]
+
+								err = ioutil.WriteFile(filepath.Join(gearPath, "gear-diff", "RecordFiles"), []byte(content), os.ModePerm)
+								if err != nil {
+									logger.Warnf("Fail to write recordfiles for %v", err)
+								}
+
+							}
+
+							resp, err := http.PostForm("http://"+d.MonitorIp+":"+d.MonitorPort+"/event", v)
+							if err != nil {
+								logger.Warnf("Fail to report to monitor for %v", err)
+							}
+
+							fmt.Println("send event!")
+
+							defer resp.Body.Close()
+
+							delete(umountGearFs, id)
 
 							break
 						}
@@ -514,6 +557,10 @@ func (d *Driver) Put(id string) error {
 
 		if ctr, _ := gearCtr[gearDiffDir]; ctr <= 1 {
 			delete(gearCtr, gearDiffDir)
+
+			if _, ok := umountGearFs[id]; ok {
+				umountGearFs[id] <- time.Now()
+			}
 
 			cmd := exec.Command("umount", gearDiffDir)
 			err := cmd.Run()
