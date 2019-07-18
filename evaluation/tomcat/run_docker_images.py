@@ -9,6 +9,8 @@ import subprocess
 import signal
 import urllib2
 
+auto = False
+
 private_registry = "202.114.10.146:9999/"
 
 apppath = ""
@@ -95,7 +97,8 @@ class Runner:
                 # record the image and its Running time
                 self.record(private_repo, tag, finishTime)
 
-                raw_input("Next?")
+                if !auto: 
+                    raw_input("Next?")
 
     def record(self, repo, tag, time):
         with open("./images_run.txt", "a") as f:
@@ -117,6 +120,9 @@ class Generator:
 
 
 if __name__ == "__main__":
+
+    if len(sys.argv) == 2:
+        auto = True
 
     generator = Generator(os.path.split(os.path.realpath(__file__))[0]+"/image_versions.yaml")
 

@@ -5,6 +5,8 @@ import time
 import yaml
 import os
 
+auto = False
+
 private_registry = "202.114.10.146:9999/"
 suffix = "-gear"
 
@@ -53,7 +55,8 @@ class Puller:
                 except docker.errors.ImageNotFound:
                     print private_registry+repo+suffix + " image not fount...\n\n"
 
-                raw_input("Next?")
+                if !auto: 
+                    raw_input("Next?")
 
     def record(self, repo, tag, time, size):
         with open("./images_pulled.txt", "a") as f:
@@ -75,6 +78,9 @@ class Generator:
 
 
 if __name__ == "__main__":
+
+    if len(sys.argv) == 2:
+        auto = True
 
     generator = Generator(os.path.split(os.path.realpath(__file__))[0]+"/image_versions.yaml")
 
