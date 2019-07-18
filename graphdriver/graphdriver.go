@@ -278,7 +278,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 				recordFileNames := []string{}
 				recordFiles := []string{}
 
-				go func() {
+				go func(id string) {
 					// 判断是否需要监测
 					if strings.Contains(id, "-init") {
 						return 
@@ -375,7 +375,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 							break
 						}
 					}
-				}()
+				}(id)
 			} else {
 				if !strings.Contains(id, "-init") {
 					// 判断是否存在prefetched文件
@@ -556,12 +556,15 @@ func (d *Driver) Put(id string) error {
 		gearDiffDir := filepath.Join(gearPath, "diff")
 
 		if ctr, _ := gearCtr[gearDiffDir]; ctr <= 1 {
+			fmt.Println("该镜像只有一个容器！")
 			delete(gearCtr, gearDiffDir)
 
+			fmt.Println("删除umountgearfs中对应的id词条！")
 			if _, ok := umountGearFs[id]; ok {
 				umountGearFs[id] <- time.Now()
 			}
 
+			fmt.Println("卸载gearfs！")
 			cmd := exec.Command("umount", gearDiffDir)
 			err := cmd.Run()
 			if err != nil {
@@ -577,6 +580,7 @@ func (d *Driver) Put(id string) error {
 			if err != nil {
 				logger.Warnf("Fail to create diff dir for %v", err)
 			}
+			fmt.Println("Put完成！")
 		} else {
 			gearCtr[gearDiffDir] -= 1
 		}
