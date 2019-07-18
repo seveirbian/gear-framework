@@ -225,10 +225,12 @@ func (m *Monitor) build() {
 	m.TMutex.Lock()
 	for repository, tags := range m.ToBeBuild {
 		for _, tag := range tags {
+			t := time.Now()
 			err := m.do_build(gearTypes.Image{Repository: repository, Tag: tag})
 			if err != nil {
 				logger.Warnf("Fail to build %s:%s", repository, tag)
 			}
+			fmt.Println("build time: ", tiem.Since(t))
 		}
 	}
 	m.TMutex.Unlock()
