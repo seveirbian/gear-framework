@@ -230,7 +230,7 @@ func (m *Monitor) build() {
 			if err != nil {
 				logger.Warnf("Fail to build %s:%s", repository, tag)
 			}
-			fmt.Println("build time: ", tiem.Since(t))
+			fmt.Println("build time: ", time.Since(t))
 		}
 	}
 	m.TMutex.Unlock()
