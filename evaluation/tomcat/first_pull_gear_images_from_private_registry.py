@@ -55,7 +55,7 @@ class Puller:
                 except docker.errors.ImageNotFound:
                     print private_registry+repo+suffix + " image not fount...\n\n"
 
-                if !auto: 
+                if auto != True: 
                     raw_input("Next?")
 
     def record(self, repo, tag, time, size):
