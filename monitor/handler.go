@@ -32,6 +32,8 @@ func handleEvent(c echo.Context) error {
 		logger.Warnf("Fail to parse files for %v", err)
 	}
 
+	c.NoContent(http.StatusOK)
+
 	// 1. 获取镜像名
 	image := values["image"][0] // 202.114.10.146:9999/tomcat-gear:8
 	imageRepo, imageTag := parseImage(image)
@@ -73,7 +75,7 @@ func handleEvent(c echo.Context) error {
 
 	// mnt.Client.ImageRemove(mnt.Ctx, )
 
-	return c.NoContent(http.StatusOK)
+	return nil
 }
 
 func check(repo, tag string) bool {
