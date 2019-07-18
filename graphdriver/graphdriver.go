@@ -544,7 +544,9 @@ func (d *Driver) Put(id string) error {
 	fmt.Printf("\nPut func parameters: \n")
 	fmt.Printf("  id: %s\n", id)
 
+	t := time.Now()
 	Eterr := d.dockerDriver.Put(id)
+	fmt.Println("Put time: ", time.Since(t))
 
 	// 1. 检测孩子的diff目录中是否有gear-image软链接
 	path := filepath.Join(d.home, id, "gear-lower")
