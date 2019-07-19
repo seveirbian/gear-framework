@@ -12,6 +12,7 @@ import urllib2
 auto = False
 
 private_registry = "202.114.10.146:9999/"
+suffix = "-gear"
 
 apppath = ""
 
@@ -46,7 +47,7 @@ class Runner:
         for repo in repos:
             tags = self.images_to_pull[1][repo]
             for tag in tags:
-                private_repo = private_registry + repo + ":" + tag
+                private_repo = private_registry + repo + suffix + ":" + tag
 
                 print "start running: ", private_repo
 
@@ -62,8 +63,8 @@ class Runner:
                                         ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
                                         command=runCommand, name=runName, detach=True)
 
-                except docker.errors.APIError:
-                    print private_repo + " api error...\n\n"
+                except docker.errors.NotFound:
+                    print private_repo + " not found...\n\n"
                 except docker.errors.ImageNotFound:
                     print private_repo + " image not fount...\n\n"
 
@@ -90,8 +91,11 @@ class Runner:
                 except:
                     print "kill fail!"
                     pass
-                    
+
                 container.remove(force=True)
+                # cmd = '%s kill %s' % ("docker", runName)
+                # rc = os.system(cmd)
+                # assert(rc == 0)
 
                 # record the image and its Running time
                 self.record(private_repo, tag, finishTime)
