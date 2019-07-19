@@ -38,6 +38,7 @@ class Runner:
     def run(self):
         self.check()
 
+        client = docker.from_env()
         # if don't give a tag, then all image under this registry will be pulled
         repos = self.images_to_pull[0]["repo"]
 
