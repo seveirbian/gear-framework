@@ -2,9 +2,9 @@ import sys
 # package need to be installed, pip install docker
 import docker 
 import time
+import random
 import yaml
 import os
-import random
 import subprocess
 import signal
 import urllib2
@@ -12,7 +12,7 @@ import urllib2
 auto = False
 
 private_registry = "202.114.10.146:9999/"
-suffix = "-gear"
+suffix = "-gearmd"
 
 apppath = ""
 
@@ -91,11 +91,8 @@ class Runner:
                 except:
                     print "kill fail!"
                     pass
-
+                    
                 container.remove(force=True)
-                # cmd = '%s kill %s' % ("docker", runName)
-                # rc = os.system(cmd)
-                # assert(rc == 0)
 
                 # record the image and its Running time
                 self.record(private_repo, tag, finishTime)
@@ -104,6 +101,7 @@ class Runner:
                     raw_input("Next?")
                 else:
                     time.sleep(5)
+
 
     def record(self, repo, tag, time):
         with open("./images_run.txt", "a") as f:

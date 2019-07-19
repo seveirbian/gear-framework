@@ -104,6 +104,8 @@ class Runner:
 
                 if auto != True: 
                     raw_input("Next?")
+                else:
+                    time.sleep(5)
 
     def record(self, repo, tag, time):
         with open("./images_run.txt", "a") as f:

@@ -99,8 +99,10 @@ class Runner:
                 # record the image and its Running time
                 self.record(private_repo, tag, finishTime)
 
-                if auto != True:  
+                if auto != True: 
                     raw_input("Next?")
+                else:
+                    time.sleep(5)
 
 
     def record(self, repo, tag, time):
