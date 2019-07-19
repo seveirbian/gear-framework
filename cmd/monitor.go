@@ -6,16 +6,18 @@ import (
     "github.com/spf13/cobra"
 )
 
-var monitorUsage = `Usage:  gear monitor IP:PORT
+var monitorUsage = `Usage:  gear monitor REGISTRYIP:REGISTRYPORT
 
 Options:
   -i, --manager-ip          Manager node's ip
       --manager-port        Manager node's port
+  -n, --no-cleanup          Do not clean up building dirs
 `
 
 var (
     monitorManagerIp string
     monitorManagerPort string
+    monitorNoClean bool
 )
 
 func init() {
@@ -24,6 +26,7 @@ func init() {
     monitorCmd.Flags().StringVarP(&monitorManagerIp, "manager-ip", "i", "", "Manager node's ip")
     monitorCmd.MarkFlagRequired("manager-ip")
     monitorCmd.Flags().StringVarP(&monitorManagerPort, "manager-port", "", "2019", "Manager node's port")
+    monitorCmd.Flags().BoolVarP(&monitorNoClean, "no-cleanup", "n", false, "Do not clean up building dirs")
 }
 
 var monitorCmd = &cobra.Command{
@@ -32,7 +35,7 @@ var monitorCmd = &cobra.Command{
     Long:  `Monitor a docker registry and build gear images for each docker image`,
     Args:  cobra.ExactArgs(1),
     Run: func(cmd *cobra.Command, args []string) {
-        monitor, err := monitor.InitMonitor(args[0], monitorManagerIp, monitorManagerPort)
+        monitor, err := monitor.InitMonitor(args[0], monitorManagerIp, monitorManagerPort, monitorNoClean)
         if err != nil {
             logrus.Fatal("Fail to init a monitor to monitor docker reistry...")
         }

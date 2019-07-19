@@ -39,7 +39,7 @@ var pushCmd = &cobra.Command{
         gImageName, gImageTag := push.ParseImage(args[0])
         gFIlesDir := filepath.Join(GearBuildPath, gImageName+":"+gImageTag, "files")
 
-        pusher, err := push.InitPusher(gFIlesDir, pushManagerIP, pushManagerPort)
+        pusher, err := push.InitPusher(gFIlesDir, pushManagerIP, pushManagerPort, false)
         if err != nil {
             logrus.Fatal("Fail to init a pusher to push gear image...")
         }

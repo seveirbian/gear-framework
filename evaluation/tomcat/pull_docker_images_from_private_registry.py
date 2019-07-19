@@ -29,7 +29,7 @@ class Puller:
         for repo in repos:
             tags = self.images_to_pull[1][repo]
             for tag in tags:
-                print "start pulling: ", repo, ":", tag
+                print "start pulling: ", private_registry+repo, ":", tag
 
                 # get present time
                 startTime = time.time()

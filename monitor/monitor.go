@@ -62,9 +62,11 @@ type Monitor struct {
 
 	TMutex sync.RWMutex
 	ToBeBuild map[string][]string
+
+	NoCleanUp bool
 }
 
-func InitMonitor(registry string, managerIp, managerPort string) (*Monitor, error) {
+func InitMonitor(registry string, managerIp, managerPort string, noCleanUp bool) (*Monitor, error) {
 	ip, port := parseRegistry(registry)
 
 	// 创建cli用来和dockerd交互
@@ -92,6 +94,7 @@ func InitMonitor(registry string, managerIp, managerPort string) (*Monitor, erro
 	mnt.ManagerPort = managerPort
 	mnt.Ctx = ctx
 	mnt.Client = cli
+	mnt.NoCleanUp = noCleanUp
 
 	return &mnt, nil
 }
@@ -270,7 +273,7 @@ func (m *Monitor) do_build(image gearTypes.Image) error {
 	// 3. 将gear镜像push到镜像仓库，并将备用文件存储到存储中
 	fmt.Printf("Pushing %s:%s/%s:%s\n", m.RegistryIp, m.RegistryPort, image.Repository+"-gear", image.Tag)
     gFIlesDir := filepath.Join(GearBuildPath, m.RegistryIp+":"+m.RegistryPort+"/"+image.Repository+"-gear"+":"+image.Tag, "files")
-    pusher, err := push.InitPusher(gFIlesDir, m.ManagerIp, m.ManagerPort)
+    pusher, err := push.InitPusher(gFIlesDir, m.ManagerIp, m.ManagerPort, m.NoCleanUp)
     if err != nil {
         logrus.Fatal("Fail to init a pusher to push gear image...")
     }

@@ -32,14 +32,22 @@ type Pusher struct {
 
 	GFilesDir string
 	FilesToSent map[string]string
+
+	DoNotClean bool
 }
 
-func InitPusher(path, ip, port string) (*Pusher, error) {
+func InitPusher(path, ip, port string, doNotClean bool) (*Pusher, error) {
+	noClean := false
+	if doNotClean == true {
+		noClean = true
+	}
+
 	return &Pusher {
 		StorageIP: ip, 
 		StoragePort: port, 
 		GFilesDir: path, 
 		FilesToSent: map[string]string{}, 
+		DoNotClean: noClean, 
 	}, nil
 }
 
@@ -114,14 +122,15 @@ func (p *Pusher) Push() {
 
     fmt.Println("Push OK!")
 
-    fmt.Println("Cleaning up dir: ", p.GFilesDir)
+    if !p.DoNotClean {
+    	fmt.Println("Cleaning up dir: ", p.GFilesDir)
+    	err = os.RemoveAll(p.GFilesDir)
+	    if err != nil {
+	    	logger.Warnf("Fail to remove all files under p.GFilesDir for %v", err)
+	    }
 
-    err = os.RemoveAll(p.GFilesDir)
-    if err != nil {
-    	logger.Warnf("Fail to remove all files under p.GFilesDir for %v", err)
+    	fmt.Println("Clean up OK!")
     }
-
-    fmt.Println("Clean up OK!")
 }
 
 func ParseImage(image string) (imageName string, imageTag string) {
