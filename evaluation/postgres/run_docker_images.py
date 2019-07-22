@@ -73,10 +73,17 @@ class Runner:
                 container.start()
 
                 while True:
+                    if container.logs().find(waitline) >= 0:
+                        break
+                    else:
+                        time.sleep(0.01)
+                        pass
+
+                while True:
                     if time.time() - startTime > 600:
                         break
 
-                    if container.logs().find(waitline) >= 0:
+                    try:
                         conn = psycopg2.connect(database="games", user="bian", password="1122", host="127.0.0.1", port="5432")
                         conn.commit()
                         print "successfully open db!"
@@ -100,7 +107,7 @@ class Runner:
                         conn.commit()
                         print "successfully delete!"
                         break
-                    else:
+                    except:
                         time.sleep(0.01) # wait 10ms
                         pass
 
