@@ -93,8 +93,6 @@ class Runner:
 
                 print "pull data: ", get_net_data() - cnetdata
 
-                print "\n"
-
                 try: 
                     container.kill()
                 except:
@@ -109,6 +107,8 @@ class Runner:
                 # delete files under /var/lib/gear/public/
                 shutil.rmtree('/var/lib/gear/public/')
                 os.mkdir('/var/lib/gear/public/')
+
+                print "empty cache! \n"
 
                 # record the image and its Running time
                 self.record(private_repo, tag, finishTime)
