@@ -8,6 +8,8 @@ import random
 import subprocess
 import signal
 import urllib2
+# package need to be installed, apt-get install python-psycopg2
+import psycopg2
 
 auto = False
 
@@ -16,13 +18,15 @@ private_registry = "202.114.10.146:9999/"
 apppath = ""
 
 # run paraments
-hostPort = 8080
-runEnvironment = ["POSTGRES_PASSWORD=mysecretpassword",]
-runPorts = {"8080/tcp": hostPort,}
+hostPort = 5432
+runEnvironment = ["POSTGRES_USER=bian", 
+                  "POSTGRES_PASSWORD=1122", 
+                  "POSTGRES_DB=games"]
+runPorts = {"5432/tcp": hostPort,}
 runVolumes = {}
 runWorking_dir = ""
 runCommand = ""
-
+waitline = "database system is ready to accept connections"
 
 
 class Runner:
@@ -73,9 +77,30 @@ class Runner:
                         break
 
                     try:
-                        ans = container.logs().find("database system is ready to accept connections")
+                        ans = container.logs().find(waitline)
                         if ans >= 0:
-                            print "OK!"
+                            conn = psycopg2.connect(database="games", user="bian", password="1122", host="127.0.0.1", port="5432")
+                            conn.commit()
+                            print "successfully open db!"
+                            cur = conn.cursor()
+                            cur.execute('''CREATE TABLE GAMES
+                                       (ID INT PRIMARY KEY     NOT NULL,
+                                       NAME           TEXT);''')
+                            conn.commit()
+                            print "successfully create table games!"
+                            cur.execute("INSERT INTO GAMES (ID, NAME) \
+                                VALUES (1, 'Three kingdoms');")
+                            conn.commit()
+                            print "successfully insert!"
+                            cur.execute("SELECT ID, NAME from GAMES;")
+                            rows = cur.fetchall()
+                            print rows
+                            cur.execute("UPDATE GAMES set NAME = 'Dota2' where ID=1;")
+                            conn.commit()
+                            print "successfully update!"
+                            cur.execute("DELETE from GAMES where ID=1;")
+                            conn.commit()
+                            print "successfully delete!"
                         break
                     except:
                         time.sleep(0.01) # wait 10ms
