@@ -130,7 +130,7 @@ def get_net_data():
             field = line.split()
             data = float(field[1]) / 1024.0 / 1024.0
 
-    fd.Close()
+    fd.close()
     return data
 
 
