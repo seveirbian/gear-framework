@@ -76,7 +76,7 @@ class Runner:
                         ans = container.logs().find("Ready to accept connections")
                         if ans >= 0:
                             print "OK!"
-                        break
+                            break
                     except:
                         time.sleep(0.01) # wait 10ms
                         pass
