@@ -137,7 +137,7 @@ def get_net_data():
     for line in fd.readlines():
         if line.find("enp0s3") >= 0:
             field = line.split()
-            data = field[1] / 1024.0 / 1024.0
+            data = float(field[1]) / 1024.0 / 1024.0
 
     fd.Close()
     return data
