@@ -35,6 +35,9 @@ class Puller:
                 # get present time
                 startTime = time.time()
 
+                # get present net data
+                cnetdata = get_net_data()
+
                 # pull images
                 try:
                     image_pulled = client.images.pull(repository=private_registry+repo+suffix, tag=str(tag))
@@ -42,10 +45,15 @@ class Puller:
                     # print pull time
                     finishTime = time.time() - startTime
 
-                    print "finished in " , finishTime, "s\n"
+                    print "finished in " , finishTime, "s"
 
                     # get image's size
                     size = image_pulled.attrs[u'Size'] / 1000000.0
+                    print "image size: ", size
+
+                    print "pull data: ", get_net_data() - cnetdata
+
+                    print "\n"
 
                     # record the image and its pulling time
                     self.record(private_registry+repo+suffix, tag, finishTime, size)
@@ -76,6 +84,17 @@ class Generator:
 
         return self.images
 
+def get_net_data():
+    netCard = "/proc/net/dev"
+    fd = open(netCard, "r")
+
+    for line in fd.readlines():
+        if line.find("enp0s3") >= 0:
+            field = line.split()
+            data = float(field[1]) / 1024.0 / 1024.0
+
+    fd.close()
+    return data
 
 if __name__ == "__main__":
 
