@@ -8,6 +8,7 @@ import os
 import subprocess
 import signal
 import urllib2
+import shutil
 
 auto = False
 
