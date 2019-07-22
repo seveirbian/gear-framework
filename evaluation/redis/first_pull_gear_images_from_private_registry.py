@@ -8,6 +8,7 @@ import os
 auto = False
 
 private_registry = "202.114.10.146:9999/"
+suffix = "-gear"
 
 class Puller:
 
@@ -29,7 +30,7 @@ class Puller:
         for repo in repos:
             tags = self.images_to_pull[1][repo]
             for tag in tags:
-                print "start pulling: ", private_registry+repo, ":", tag
+                print "start pulling: ", repo, ":", tag
 
                 # get present time
                 startTime = time.time()
@@ -39,7 +40,7 @@ class Puller:
 
                 # pull images
                 try:
-                    image_pulled = client.images.pull(repository=private_registry+repo, tag=str(tag))
+                    image_pulled = client.images.pull(repository=private_registry+repo+suffix, tag=str(tag))
 
                     # print pull time
                     finishTime = time.time() - startTime
@@ -53,14 +54,14 @@ class Puller:
                     print "pull data: ", get_net_data() - cnetdata
 
                     # record the image and its pulling time
-                    self.record(private_registry+repo, tag, finishTime, size)
+                    self.record(private_registry+repo+suffix, tag, finishTime, size)
 
                 except docker.errors.NotFound:
-                    print private_registry+repo + " not found...\n\n"
+                    print private_registry+repo+suffix + " not found...\n\n"
                 except docker.errors.ImageNotFound:
-                    print private_registry+repo + " image not fount...\n\n"
+                    print private_registry+repo+suffix + " image not fount...\n\n"
 
-                if auto != True:  
+                if auto != True: 
                     raw_input("Next?")
 
     def record(self, repo, tag, time, size):
