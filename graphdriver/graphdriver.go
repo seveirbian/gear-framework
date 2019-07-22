@@ -339,7 +339,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 
 							delete(umountGearFs, id)
 
-							break
+							return
 						case <- umountGearFs[id]:
 							// 向manager汇报
 							v := url.Values{"files": recordFiles, "filenames": recordFileNames, "image": []string{gearImage}}
@@ -358,7 +358,6 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 								if err != nil {
 									logger.Warnf("Fail to write recordfiles for %v", err)
 								}
-
 							}
 
 							resp, err := http.PostForm("http://"+d.MonitorIp+":"+d.MonitorPort+"/event", v)
@@ -372,7 +371,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 
 							delete(umountGearFs, id)
 
-							break
+							return
 						}
 					}
 				}(id)
