@@ -45,13 +45,15 @@ class Puller:
                     # print pull time
                     finishTime = time.time() - startTime
 
-                    print "finished in " , finishTime, "s\n"
+                    print "finished in " , finishTime, "s"
 
                     # get image's size
                     size = image_pulled.attrs[u'Size'] / 1000000.0
                     print "image size: ", size
 
                     print "pull data: ", get_net_data() - cnetdata
+
+                    print "\n"
 
                     # record the image and its pulling time
                     self.record(private_registry+repo+suffix, tag, finishTime, size)

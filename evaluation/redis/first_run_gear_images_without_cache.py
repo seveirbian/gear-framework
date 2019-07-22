@@ -78,10 +78,9 @@ class Runner:
                         break
 
                     try:
-                        req = urllib2.urlopen('http://localhost:%d'%hostPort)
-                        if req.read().find("All Rights Reserved") >= 0:
+                        ans = container.logs().find("Ready to accept connections")
+                        if ans >= 0:
                             print "OK!"
-                        req.close()
                         break
                     except:
                         time.sleep(0.01) # wait 10ms
@@ -90,9 +89,11 @@ class Runner:
                 # print run time
                 finishTime = time.time() - startTime
 
-                print "finished in " , finishTime, "s\n"
+                print "finished in " , finishTime, "s"
 
                 print "pull data: ", get_net_data() - cnetdata
+
+                print "\n"
 
                 try: 
                     container.kill()
