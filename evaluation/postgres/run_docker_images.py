@@ -26,7 +26,7 @@ runPorts = {"5432/tcp": hostPort,}
 runVolumes = {}
 runWorking_dir = ""
 runCommand = ""
-waitline = "database system is ready to accept connections"
+waitline = "ready to accept connections"
 
 
 class Runner:
@@ -76,33 +76,31 @@ class Runner:
                     if time.time() - startTime > 600:
                         break
 
-                    try:
-                        ans = container.logs().find(waitline)
-                        if ans >= 0:
-                            conn = psycopg2.connect(database="games", user="bian", password="1122", host="127.0.0.1", port="5432")
-                            conn.commit()
-                            print "successfully open db!"
-                            cur = conn.cursor()
-                            cur.execute('''CREATE TABLE GAMES
-                                       (ID INT PRIMARY KEY     NOT NULL,
-                                       NAME           TEXT);''')
-                            conn.commit()
-                            print "successfully create table games!"
-                            cur.execute("INSERT INTO GAMES (ID, NAME) \
-                                VALUES (1, 'Three kingdoms');")
-                            conn.commit()
-                            print "successfully insert!"
-                            cur.execute("SELECT ID, NAME from GAMES;")
-                            rows = cur.fetchall()
-                            print rows
-                            cur.execute("UPDATE GAMES set NAME = 'Dota2' where ID=1;")
-                            conn.commit()
-                            print "successfully update!"
-                            cur.execute("DELETE from GAMES where ID=1;")
-                            conn.commit()
-                            print "successfully delete!"
+                    if container.logs().find(waitline) >= 0:
+                        conn = psycopg2.connect(database="games", user="bian", password="1122", host="127.0.0.1", port="5432")
+                        conn.commit()
+                        print "successfully open db!"
+                        cur = conn.cursor()
+                        cur.execute('''CREATE TABLE GAMES
+                                   (ID INT PRIMARY KEY     NOT NULL,
+                                   NAME           TEXT);''')
+                        conn.commit()
+                        print "successfully create table games!"
+                        cur.execute("INSERT INTO GAMES (ID, NAME) \
+                            VALUES (1, 'Three kingdoms');")
+                        conn.commit()
+                        print "successfully insert!"
+                        cur.execute("SELECT ID, NAME from GAMES;")
+                        rows = cur.fetchall()
+                        print rows
+                        cur.execute("UPDATE GAMES set NAME = 'Dota2' where ID=1;")
+                        conn.commit()
+                        print "successfully update!"
+                        cur.execute("DELETE from GAMES where ID=1;")
+                        conn.commit()
+                        print "successfully delete!"
                         break
-                    except:
+                    else:
                         time.sleep(0.01) # wait 10ms
                         pass
 
