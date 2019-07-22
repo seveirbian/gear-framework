@@ -17,9 +17,13 @@ suffix = "-gear"
 apppath = ""
 
 # run paraments
-hostPort = 8080
+hostPort = 8091
 runEnvironment = []
-runPorts = {"8080/tcp": hostPort,}
+runPorts = {"8091/tcp": 8091,
+            "8092/tcp": 8092,
+            "8093/tcp": 8093,
+            "8094/tcp": 8094,
+            "11210/tcp": 11210,}
 runVolumes = {}
 runWorking_dir = ""
 runCommand = ""
