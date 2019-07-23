@@ -20,11 +20,13 @@ apppath = ""
 
 # run paraments
 hostPort = 5432
+localVolume = "/var/lib/gear/volume"
+
 runEnvironment = ["POSTGRES_USER=bian", 
                   "POSTGRES_PASSWORD=1122", 
                   "POSTGRES_DB=games"]
 runPorts = {"5432/tcp": hostPort,}
-runVolumes = {}
+runVolumes = {localVolume: {'bind': '/var/lib/postgresql/data', 'mode': 'rw'},}
 runWorking_dir = ""
 runCommand = ""
 waitline = "ready to accept connections"
@@ -183,6 +185,9 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         auto = True
 
+    if !os.path.exists(localVolume):
+        os.makedirs(localVolume)
+
     generator = Generator(os.path.split(os.path.realpath(__file__))[0]+"/image_versions.yaml")
 
     images = generator.generateFromProfile()
@@ -190,3 +195,5 @@ if __name__ == "__main__":
     runner = Runner(images)
 
     runner.run()
+
+    os.rmdir(localVolume)
