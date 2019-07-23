@@ -54,6 +54,9 @@ class Runner:
             for tag in tags:
                 private_repo = private_registry + repo + ":" + tag
 
+                if os.path.exists(localVolume) == False:
+                    os.makedirs(localVolume)
+
                 print "start running: ", private_repo
 
                 # create a random name
@@ -135,6 +138,8 @@ class Runner:
                 else:
                     time.sleep(5)
 
+                shutil.rmtree(localVolume)
+
     def record(self, repo, tag, time):
         with open("./images_run.txt", "a") as f:
             f.write("repo: "+str(repo)+" tag: "+str(tag)+" time: "+str(time)+"\n")
@@ -171,9 +176,6 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         auto = True
 
-    if os.path.exists(localVolume) == False:
-        os.makedirs(localVolume)
-
     generator = Generator(os.path.split(os.path.realpath(__file__))[0]+"/image_versions.yaml")
 
     images = generator.generateFromProfile()
@@ -181,5 +183,3 @@ if __name__ == "__main__":
     runner = Runner(images)
 
     runner.run()
-
-    shutil.rmtree(localVolume)
