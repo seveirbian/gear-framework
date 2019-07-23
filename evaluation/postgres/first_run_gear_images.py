@@ -180,7 +180,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         auto = True
 
-    if !os.path.exists(localVolume):
+    if os.path.exists(localVolume) == False:
         os.makedirs(localVolume)
 
     generator = Generator(os.path.split(os.path.realpath(__file__))[0]+"/image_versions.yaml")
