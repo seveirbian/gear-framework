@@ -196,4 +196,4 @@ if __name__ == "__main__":
 
     runner.run()
 
-    os.rmdir(localVolume)
+    shutil.rmtree(localVolume)

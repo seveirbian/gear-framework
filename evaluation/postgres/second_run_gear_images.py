@@ -9,6 +9,7 @@ import subprocess
 import signal
 import urllib2
 import psycopg2
+import shutil
 
 auto = False
 
@@ -189,4 +190,4 @@ if __name__ == "__main__":
 
     runner.run()
 
-    os.rmdir(localVolume)
+    shutil.rmtree(localVolume)

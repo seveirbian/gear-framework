@@ -10,6 +10,7 @@ import signal
 import urllib2
 # package need to be installed, apt-get install python-psycopg2
 import psycopg2
+import shutil
 
 auto = False
 
@@ -181,4 +182,4 @@ if __name__ == "__main__":
 
     runner.run()
 
-    os.rmdir(localVolume)
+    shutil.rmtree(localVolume)
