@@ -5,6 +5,7 @@ import (
 	"io"
 	"fmt"
 	"path"
+	"bytes"
 	// "archive/tar"
 	gzip "github.com/klauspost/pgzip"
 	"time"
@@ -218,7 +219,7 @@ func (d *Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
 		logger.Warnf("Fail to lstat dir.attr for %v", err)
 	}
 
-	attr.Valid = 1 * time.Second
+	attr.Valid = 600 * time.Second
 	attr.Inode = dirInfo.Sys().(*syscall.Stat_t).Ino
 	attr.Size = uint64(dirInfo.Size())
 	attr.Blocks = uint64(dirInfo.Sys().(*syscall.Stat_t).Blocks)
@@ -293,6 +294,7 @@ func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.Lo
 				upperPath: d.upperPath, 
 				relativePath: filepath.Join(d.relativePath, req.Name), 
 				initLayerPath: d.initLayerPath, 
+				buff: nil, 
 			}
 			return child, nil
 		} else {
@@ -303,6 +305,7 @@ func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.Lo
 				upperPath: d.upperPath, 
 				relativePath: filepath.Join(d.relativePath, req.Name), 
 				initLayerPath: d.initLayerPath, 
+				buff: nil, 
 			}
 			return child, nil
 		}
@@ -327,6 +330,8 @@ type File struct {
 	privateCacheName string
 
 	initLayerPath string
+
+	buff *bytes.Buffer
 }
 
 func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
@@ -336,7 +341,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	upperFileInfo, err := os.Lstat(filepath.Join(f.upperPath, f.relativePath))
 	if err == nil {
 		// 是的话就返回upper目录的文件信息
-		attr.Valid = 1 * time.Second
+		attr.Valid = 600 * time.Second
 		attr.Inode = upperFileInfo.Sys().(*syscall.Stat_t).Ino
 		attr.Size = uint64(upperFileInfo.Size())
 		attr.Blocks = uint64(upperFileInfo.Sys().(*syscall.Stat_t).Blocks)
@@ -420,7 +425,16 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 					logger.Warnf("Fail to create gzip reader for %v", err)
 				}
 
-				_, err = io.Copy(tgt, gr)
+				// 现在内存中保留一份，加速后续的读取速度
+				b, err := ioutil.ReadAll(gr)
+				if err != nil {
+					logger.Warnf("Read gr err for %v", err)
+				}
+
+				f.buff = bytes.NewBuffer(b)
+				grCopy := bytes.NewReader(b)
+
+				_, err = io.Copy(tgt, grCopy)
 				if err != nil {
 					logger.Fatalf("Fail to copy for %v", err)
 				}
@@ -483,7 +497,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 			logger.Warnf("Fail to get index file info for %v", err)
 		}
 
-		attr.Valid = 1 * time.Second
+		attr.Valid = 600 * time.Second
 		attr.Inode = IndexFileInfo.Sys().(*syscall.Stat_t).Ino
 		attr.Blocks = uint64(IndexFileInfo.Sys().(*syscall.Stat_t).Blocks)
 		attr.Mtime = IndexFileInfo.ModTime()
@@ -498,7 +512,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 			logger.Warnf("Cannot stat file: %v", err)
 		}
 
-		attr.Valid = 1 * time.Second
+		attr.Valid = 600 * time.Second
 		attr.Inode = IndexFileInfo.Sys().(*syscall.Stat_t).Ino
 		attr.Size = uint64(IndexFileInfo.Size())
 		attr.Blocks = uint64(IndexFileInfo.Sys().(*syscall.Stat_t).Blocks)
@@ -620,7 +634,16 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 					logger.Warnf("Fail to create gzip reader for %v", err)
 				}
 
-				_, err = io.Copy(tgt, gr)
+				// 现在内存中保留一份，加速后续的读取速度
+				b, err := ioutil.ReadAll(gr)
+				if err != nil {
+					logger.Warnf("Read gr err for %v", err)
+				}
+
+				f.buff = bytes.NewBuffer(b)
+				grCopy := bytes.NewReader(b)
+
+				_, err = io.Copy(tgt, grCopy)
 				if err != nil {
 					logger.Fatalf("Fail to copy for %v", err)
 				}
@@ -679,6 +702,9 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 		}
 		fileHandler.f = file
 		fileHandler.filepath = filepath.Join(f.privateCachePath, f.privateCacheName)
+		if f.buff != nil {
+			fileHandler.buff = f.buff
+		}
 
 		resp.Flags |= fuse.OpenKeepCache
 		return &fileHandler, nil
@@ -690,6 +716,9 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 	}
 	fileHandler.f = file
 	fileHandler.filepath = filepath.Join(f.indexImagePath, f.relativePath)
+	if f.buff != nil {
+		fileHandler.buff = f.buff
+	}
 
 	go func() {
 		if monitorFlag {
@@ -721,6 +750,8 @@ type FileHandler struct {
 	filepath string
 
 	f *os.File
+
+	buff *bytes.Buffer
 }
 
 func (fh *FileHandler) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
@@ -729,11 +760,17 @@ func (fh *FileHandler) Release(ctx context.Context, req *fuse.ReleaseRequest) er
 }
 
 func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-	 // fmt.Println("fh.Read()!")
-	buf := make([]byte, req.Size)
-	n, err := fh.f.Read(buf)
-	resp.Data = buf[:n]
-
+	// fmt.Println("fh.Read()!")
+	var err error
+	if fh.buff != nil {
+		_, err = fh.buff.Read(resp.Data)
+	} else {
+		buf := make([]byte, req.Size)
+		n, er := fh.f.Read(buf)
+		err = er
+		resp.Data = buf[:n]
+	}
+	
 	return err
 }
 
@@ -742,7 +779,10 @@ func (fh *FileHandler) ReadAll(ctx context.Context) ([]byte, error) {
 	var data []byte
 	var err error
 
-	if fh.filepath != "" {
+	if fh.buff != nil {
+		data = fh.buff.Bytes()
+		err = nil
+	} else if fh.filepath != "" {
 		// fmt.Println("Filepath: ", fh.filepath)
 		data, err = ioutil.ReadFile(fh.filepath)
 	} else {
