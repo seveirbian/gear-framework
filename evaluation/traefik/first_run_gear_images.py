@@ -22,10 +22,11 @@ apppath = ""
 # run paraments
 hostPort = 8080
 localVolume = "/var/lib/gear/volume"
+pwd = os.getcwd()
 
 runEnvironment = []
 runPorts = {"8080/tcp": hostPort, "80/tcp": 80,}
-runVolumes = {"$PWD/traefik.toml": {'bind': '/etc/traefik/traefik.toml', 'mode': 'rw'}, 
+runVolumes = {os.path.join(pwd, "/traefik.toml"): {'bind': '/etc/traefik/traefik.toml', 'mode': 'rw'}, 
               "/var/run/docker.sock": {'bind': '/var/run/docker.sock', 'mode': 'rw'}, }
 runWorking_dir = ""
 runCommand = ""
