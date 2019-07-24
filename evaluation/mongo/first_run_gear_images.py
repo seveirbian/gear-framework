@@ -89,13 +89,14 @@ class Runner:
                         time.sleep(0.01)
                         pass
 
+                print "yes!"
                 while True:
                     if time.time() - startTime > 600:
                         break
 
                     try:
-                        client = pymongo.MongoClient("mongodb://%s:%s@127.0.0.1" % ("bian", "1122"))
-                        db = client["games"]
+                        cli = pymongo.MongoClient("mongodb://%s:%s@127.0.0.1" % ("bian", "1122"))
+                        db = cli["games"]
                         print "successfully open db!"
                         my_directory = {"ID": 1, "NAME": "Three kingdoms"}
                         posts = db.posts
@@ -108,6 +109,7 @@ class Runner:
                         print "successfully delete!"
                         break
                     except:
+                        print "oh, fuck!"
                         time.sleep(0.01) # wait 10ms
                         pass
 

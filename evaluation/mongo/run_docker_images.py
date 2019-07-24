@@ -45,7 +45,7 @@ class Runner:
     def run(self):
         self.check()
 
-        dockerclient = docker.from_env()
+        client = docker.from_env()
         # if don't give a tag, then all image under this registry will be pulled
         repos = self.images_to_pull[0]["repo"]
 
@@ -68,7 +68,7 @@ class Runner:
 
                 # run images
                 try:
-                    container = dockerclient.containers.create(image=private_repo, environment=runEnvironment,
+                    container = client.containers.create(image=private_repo, environment=runEnvironment,
                                         ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
                                         command=runCommand, name=runName, detach=True)
 
@@ -93,8 +93,8 @@ class Runner:
                         break
 
                     try:
-                        client = pymongo.MongoClient("mongodb://%s:%s@127.0.0.1" % ("bian", "1122"))
-                        db = client["games"]
+                        cli = pymongo.MongoClient("mongodb://%s:%s@127.0.0.1" % ("bian", "1122"))
+                        db = cli["games"]
                         print "successfully open db!"
                         my_directory = {"ID": 1, "NAME": "Three kingdoms"}
                         posts = db.posts
