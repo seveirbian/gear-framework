@@ -2,19 +2,20 @@ import sys
 # package need to be installed, pip install docker
 import docker 
 import time
+import random
 import yaml
 import os
-import random
 import subprocess
 import signal
 import urllib2
-# package need to be installed, apt-get install python-pymongo
-import pymongo
 import shutil
+import psycopg2
+import pymongo
 
 auto = False
 
 private_registry = "202.114.10.146:9999/"
+suffix = "-gearmd"
 
 apppath = ""
 
@@ -29,6 +30,7 @@ runVolumes = {"$PWD/traefik.toml": {'bind': '/etc/traefik/traefik.toml', 'mode':
 runWorking_dir = ""
 runCommand = ""
 waitline = ""
+
 
 
 class Runner:
@@ -51,11 +53,10 @@ class Runner:
         for repo in repos:
             tags = self.images_to_pull[1][repo]
             for tag in tags:
-                private_repo = private_registry + repo + ":" + tag
+                private_repo = private_registry + repo + suffix + ":" + tag
 
-                if localVolume != "":
-                    if os.path.exists(localVolume) == False:
-                        os.makedirs(localVolume)
+                if os.path.exists(localVolume) == False:
+                    os.makedirs(localVolume)
 
                 print "start running: ", private_repo
 
@@ -65,23 +66,24 @@ class Runner:
                 # get present time
                 startTime = time.time()
 
+                # get present net data
+                cnetdata = get_net_data()
+
                 # run images
                 try:
                     container = client.containers.create(image=private_repo, environment=runEnvironment,
                                         ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
                                         command=runCommand, name=runName, detach=True)
 
-                except docker.errors.APIError:
-                    print private_repo + " api error...\n\n"
+                except docker.errors.NotFound:
+                    print private_repo + " not found...\n\n"
                 except docker.errors.ImageNotFound:
                     print private_repo + " image not fount...\n\n"
 
                 container.start()
 
                 while True:
-                    if waitline == "":
-                        break
-                    elif container.logs().find(waitline) >= 0:
+                    if container.logs().find(waitline) >= 0:
                         break
                     else:
                         time.sleep(0.01)
@@ -104,7 +106,9 @@ class Runner:
                 # print run time
                 finishTime = time.time() - startTime
 
-                print "finished in " , finishTime, "s\n"
+                print "finished in " , finishTime, "s"
+
+                print "pull data: ", get_net_data() - cnetdata
 
                 try: 
                     container.kill()
@@ -114,6 +118,12 @@ class Runner:
                     
                 container.remove(force=True)
 
+                # delete files under /var/lib/gear/public/
+                shutil.rmtree('/var/lib/gear/public/')
+                os.mkdir('/var/lib/gear/public/')
+
+                print "empty cache! \n"
+
                 # record the image and its Running time
                 self.record(private_repo, tag, finishTime)
 
@@ -122,8 +132,8 @@ class Runner:
                 else:
                     time.sleep(5)
 
-                if localVolume != "":
-                    shutil.rmtree(localVolume)
+                shutil.rmtree(localVolume)
+
 
     def record(self, repo, tag, time):
         with open("./images_run.txt", "a") as f:
@@ -154,7 +164,6 @@ def get_net_data():
 
     fd.close()
     return data
-
 
 if __name__ == "__main__":
 
