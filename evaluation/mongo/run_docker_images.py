@@ -24,7 +24,7 @@ localVolume = "/var/lib/gear/volume"
 
 runEnvironment = ["MONGO_INITDB_ROOT_USERNAME=bian", 
                   "MONGO_INITDB_ROOT_PASSWORD=1122", 
-                  "MONGO_INITDB_DATABASE=games"]
+                  "MONGO_INITDB_DATABASE=games", ]
 runPorts = {"27017/tcp": hostPort,}
 runVolumes = {localVolume: {'bind': '/data/db', 'mode': 'rw'},}
 runWorking_dir = ""
@@ -45,7 +45,7 @@ class Runner:
     def run(self):
         self.check()
 
-        client = docker.from_env()
+        dockerclient = docker.from_env()
         # if don't give a tag, then all image under this registry will be pulled
         repos = self.images_to_pull[0]["repo"]
 
@@ -68,7 +68,7 @@ class Runner:
 
                 # run images
                 try:
-                    container = client.containers.create(image=private_repo, environment=runEnvironment,
+                    container = dockerclient.containers.create(image=private_repo, environment=runEnvironment,
                                         ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
                                         command=runCommand, name=runName, detach=True)
 
