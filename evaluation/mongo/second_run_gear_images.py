@@ -103,7 +103,7 @@ class Runner:
                         print "successfully insert!"
                         posts.update_one({"NAME": "Three kingdoms"}, {"$set": {"NAME": "data2"}})
                         print "successfully update!"
-                        print posts.find_one("ID": 1)
+                        print posts.find_one({"ID": 1})
                         posts.delete_one({"ID": 1})
                         print "successfully delete!"
                         break
