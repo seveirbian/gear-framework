@@ -52,8 +52,9 @@ class Runner:
             for tag in tags:
                 private_repo = private_registry + repo + ":" + tag
 
-                if os.path.exists(localVolume) == False:
-                    os.makedirs(localVolume)
+                if localVolume != "":
+                    if os.path.exists(localVolume) == False:
+                        os.makedirs(localVolume)
 
                 print "start running: ", private_repo
 
@@ -120,7 +121,8 @@ class Runner:
                 else:
                     time.sleep(5)
 
-                shutil.rmtree(localVolume)
+                if localVolume != "":
+                    shutil.rmtree(localVolume)
 
     def record(self, repo, tag, time):
         with open("./images_run.txt", "a") as f:
