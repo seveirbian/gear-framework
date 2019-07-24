@@ -66,15 +66,9 @@ class Runner:
                 startTime = time.time()
 
                 # run images
-                try:
-                    container = client.containers.create(image=private_repo, environment=runEnvironment,
-                                        ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
-                                        command=runCommand, name=runName, detach=True)
-
-                except docker.errors.APIError:
-                    print private_repo + " api error...\n\n"
-                except docker.errors.ImageNotFound:
-                    print private_repo + " image not fount...\n\n"
+                container = client.containers.create(image=private_repo, environment=runEnvironment,
+                                    ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
+                                    command=runCommand, name=runName, detach=True)
 
                 container.start()
 
