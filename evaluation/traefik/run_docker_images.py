@@ -88,8 +88,8 @@ class Runner:
 
                     try:
                         req = urllib2.urlopen('http://localhost:%d'%hostPort)
-                        if req.read().find("dashboard") >= 0:
-                            print "OK!"
+                        # if req.read().find("dashboard") >= 0:
+                        #     print "OK!"
                         req.close()
                         break
                     except:
