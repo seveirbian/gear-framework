@@ -10,6 +10,7 @@ import signal
 import urllib2
 import psycopg2
 import shutil
+import pymongo
 
 auto = False
 
@@ -89,7 +90,6 @@ class Runner:
                         time.sleep(0.01)
                         pass
 
-                print "yes!"
                 while True:
                     if time.time() - startTime > 600:
                         break
@@ -109,7 +109,6 @@ class Runner:
                         print "successfully delete!"
                         break
                     except:
-                        print "oh, fuck!"
                         time.sleep(0.01) # wait 10ms
                         pass
 

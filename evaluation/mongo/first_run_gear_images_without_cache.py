@@ -10,6 +10,7 @@ import signal
 import shutil
 import urllib2
 import psycopg2
+import pymongo
 
 auto = False
 
