@@ -12,7 +12,7 @@ private_registry = "202.114.10.146:9999/"
 suffix = "-gear"
 
 # result
-result = []
+result = [["tag", "finishTime"], ]
 
 class Puller:
 

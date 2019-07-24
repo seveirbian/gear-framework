@@ -33,7 +33,7 @@ runCommand = "echo hello"
 waitline = "hello"
 
 # result
-result = []
+result = [["tag", "finishTime", "data"], ]
 
 class Runner:
 

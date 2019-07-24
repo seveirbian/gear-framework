@@ -4,10 +4,14 @@ import docker
 import time
 import yaml
 import os
+import xlwt
 
 auto = False
 
 private_registry = "202.114.10.146:9999/"
+
+# result
+result = [["tag", "finishTime", "size", "data"], ]
 
 class Puller:
 
@@ -50,12 +54,14 @@ class Puller:
                     size = image_pulled.attrs[u'Size'] / 1000000.0
                     print "image size: ", size
 
-                    print "pull data: ", get_net_data() - cnetdata
+                    data = get_net_data() - cnetdata
+
+                    print "pull data: ", data
 
                     print "\n"
 
                     # record the image and its pulling time
-                    self.record(private_registry+repo, tag, finishTime, size)
+                    result.append([tag, finishTime, size, data])
 
                 except docker.errors.NotFound:
                     print private_registry+repo + " not found...\n\n"
@@ -64,10 +70,6 @@ class Puller:
 
                 if auto != True:  
                     raw_input("Next?")
-
-    def record(self, repo, tag, time, size):
-        with open("./images_pulled.txt", "a") as f:
-            f.write("repo: "+str(repo)+" tag: "+str(tag)+" time: "+str(time)+" size: "+str(size)+"\n")
 
 class Generator:
     
@@ -107,3 +109,13 @@ if __name__ == "__main__":
     puller = Puller(images)
 
     puller.pull()
+
+    # create a workbook sheet
+    workbook = xlwt.Workbook()
+    sheet = workbook.add_sheet("run_time")
+
+    for row in range(len(result)):
+        for column in range(len(result[row])):
+            sheet.write(row, column, result[row][column])
+
+    workbook.save("./run.xls")
