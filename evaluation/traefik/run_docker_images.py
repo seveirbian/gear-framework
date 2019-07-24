@@ -25,7 +25,7 @@ pwd = os.getcwd()
 
 runEnvironment = []
 runPorts = {"8080/tcp": hostPort, "80/tcp": 80,}
-runVolumes = {os.path.join(pwd, "/traefik.toml"): {'bind': '/etc/traefik/traefik.toml', 'mode': 'rw'}, 
+runVolumes = {os.path.join(pwd, "traefik.toml"): {'bind': '/etc/traefik/traefik.toml', 'mode': 'rw'}, 
               "/var/run/docker.sock": {'bind': '/var/run/docker.sock', 'mode': 'rw'}, }
 runWorking_dir = ""
 runCommand = ""
@@ -88,8 +88,8 @@ class Runner:
 
                     try:
                         req = urllib2.urlopen('http://localhost:%d'%hostPort)
-                        # if req.read().find("dashboard") >= 0:
-                        #     print "OK!"
+                        if req.read().find("dashboard") >= 0:
+                            print "OK!"
                         req.close()
                         break
                     except:
