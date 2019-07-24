@@ -81,18 +81,17 @@ class Runner:
                     elif container.logs().find(waitline) >= 0:
                         break
                     else:
-                        time.sleep(0.01)
+                        time.sleep(0.1)
                         pass
 
                 while True:
                     if time.time() - startTime > 600:
                         break
 
-                    try:
-                        container.logs().find(runWaitLine) >= 0
+                    if container.logs().find(runWaitLine) >= 0:
                         break
-                    except:
-                        time.sleep(0.01) # wait 10ms
+                    else:
+                        time.sleep(0.1) # wait 100ms
                         pass
 
                 # print run time
