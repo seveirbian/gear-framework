@@ -11,6 +11,7 @@ import urllib2
 # package need to be installed, apt-get install python-pymongo
 import pymongo
 import shutil
+import xlwt
 
 auto = False
 
@@ -30,6 +31,8 @@ runWorking_dir = ""
 runCommand = "echo hello"
 waitline = "hello"
 
+# result
+result = []
 
 class Runner:
 
@@ -106,7 +109,7 @@ class Runner:
                 container.remove(force=True)
 
                 # record the image and its Running time
-                self.record(private_repo, tag, finishTime)
+                result.append([tag, finishTime])
 
                 if auto != True: 
                     raw_input("Next?")
@@ -115,10 +118,6 @@ class Runner:
 
                 if localVolume != "":
                     shutil.rmtree(localVolume)
-
-    def record(self, repo, tag, time):
-        with open("./images_run.txt", "a") as f:
-            f.write("repo: "+str(repo)+" tag: "+str(tag)+" time: "+str(time)+"\n")
 
 class Generator:
     
@@ -159,3 +158,13 @@ if __name__ == "__main__":
     runner = Runner(images)
 
     runner.run()
+
+    # create a workbook sheet
+    workbook = xlwt.Workbook()
+    sheet = workbook.add_sheet("run_time")
+
+    for row in range(len(result)):
+        for column in range(len(result[row])):
+            sheet.write(row, column, result[row][column])
+
+    workbook.save("./run.xls")
