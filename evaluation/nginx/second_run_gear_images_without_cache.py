@@ -83,7 +83,7 @@ class Runner:
                 while True:
                     if waitline == "":
                         break
-                    else if container.logs().find(waitline) >= 0:
+                    elif container.logs().find(waitline) >= 0:
                         break
                     else:
                         time.sleep(0.01)
