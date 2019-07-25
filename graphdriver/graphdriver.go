@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"bytes"
 	goPath "path"
 	"time"
 	"os/exec"
@@ -497,6 +498,30 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 							}
 						}
 					}
+
+					// 将软连接也复制到-init目录
+					gearFile, err := os.Open(filepath.Join(gearPath, "gearFile"))
+					if err != nil {
+						logger.Warnf("Fail to open gearfile for %v", err)
+					}
+
+					tr := tar.NewReader(gearFile)
+
+					for {
+						th, err := tr.Next()
+						if err == io.EOF {
+							break;
+						}
+
+						if th.Typeflag == tar.TypeSymlink {
+							target := th.Linkname
+							err := os.Symlink(target, filepath.Join(initLayerPath, th.Name))
+							if err != nil {
+								logger.Warnf("Fail to symlink for %v", err)
+							}
+						}
+					}
+
 					fmt.Println(time.Since(lt))
 				}
 			}
@@ -797,10 +822,26 @@ func (d *Driver) ApplyDiff(id, parent string, diff io.Reader) (int64, error) {
 	fmt.Printf("  id: %s\n", id)
 	fmt.Printf("  parent: %s\n", parent)
 
-	// 1. 直接将数据解压到diff文件中
-	size, err := d.dockerDriver.ApplyDiff(id, parent, diff)
+	// 0. 保留一份原始文件
+	diffBack, err := ioutil.ReadAll(diff)
+	if err != nil {
+		logger.Warnf("Read diff err for %v", err)
+	}
 
-	// 4. 检测当前镜像是否是gear镜像
+	// gearFile = bytes.NewBuffer(diffBack)
+	dockerDiff := bytes.NewReader(diffBack)
+
+	go func(data []byte) {
+		err := ioutil.WriteFile(filepath.Join(d.home, id, "gearFile"), diffBack, os.ModePerm)
+		if err != nil {
+			logger.Warnf("Fail to write file for %v", err)
+		}
+	}(diffBack)
+
+	// 1. 直接将数据解压到diff文件中
+	size, err := d.dockerDriver.ApplyDiff(id, parent, dockerDiff)
+
+	// 2. 检测当前镜像是否是gear镜像
 	path := filepath.Join(d.home, id, "diff", "gear-image")
 	_, err = os.Lstat(path)
 
