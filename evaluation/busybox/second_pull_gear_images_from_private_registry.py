@@ -12,7 +12,7 @@ private_registry = "202.114.10.146:9999/"
 suffix = "-gearmd"
 
 # result
-result = [["tag", "finishTime"], ]
+result = [["tag", "finishTime", "data"], ]
 
 class Puller:
 

@@ -301,8 +301,8 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 					for {
 						select {
 						case file := <- recordChan:
-							if _, ok := dupFiles[file.Hash]; !ok {
-								dupFiles[file.Hash] = true
+							if _, ok := dupFiles[file.RelativePath]; !ok {
+								dupFiles[file.RelativePath] = true
 								recordFiles = append(recordFiles, file.Hash)
 								recordFileNames = append(recordFileNames, file.RelativePath)
 							}
