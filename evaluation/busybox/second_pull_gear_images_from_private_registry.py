@@ -62,7 +62,7 @@ class Puller:
                     print "\n"
 
                     # record the image and its pulling time
-                    result.append([tag, finishTime])
+                    result.append([tag, finishTime, data])
 
                 except docker.errors.NotFound:
                     print private_registry+repo+suffix + " not found...\n\n"
