@@ -380,6 +380,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 					// 判断是否存在prefetched文件
 					files := []string{}
 					tamplate := map[string]string{}
+					dedup := map[string]bool{}
 
 					b, err := ioutil.ReadFile(filepath.Join(gearPath, "gear-diff", "RecordFiles"))
 					if err != nil {
@@ -393,10 +394,13 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 					for _, nameAndFile := range nameAndFiles {
 						c := strings.Split(nameAndFile, " ")
 						if c[1] != "" {
-							tmp = append(tmp, c[1])
+							if _, ok := dedup[c[1]]; !ok {
+								dedup[c[1]] = true
+								tmp = append(tmp, c[1])
+							}
 
-							if _, ok := tamplate[c[1]]; !ok {
-								tamplate[c[1]] = c[0]
+							if _, ok := tamplate[c[0]]; !ok {
+								tamplate[c[0]] = c[1]
 							}
 						}						
 					}
@@ -471,11 +475,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 					fmt.Println(lt)
 					if initLayerPath != "" {
 						// 将文件link到-init层目录
-						for _, file := range files {
-							relativePath, ok := tamplate[file]
-							if !ok {
-								continue
-							}
+						for relativePath, file := range tamplate {
 							_, err = os.Lstat(filepath.Join(initLayerPath, relativePath))
 							if err != nil {
 								initDir := goPath.Dir(filepath.Join(initLayerPath, relativePath))
