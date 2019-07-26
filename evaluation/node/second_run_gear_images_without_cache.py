@@ -124,7 +124,8 @@ class Runner:
                 else:
                     time.sleep(5)
 
-                shutil.rmtree(localVolume)
+                if localVolume != "":
+                    shutil.rmtree(localVolume)
 
 class Generator:
     
