@@ -291,7 +291,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 					fmt.Println("Monitoring...")
 					t := time.NewTimer(time.Duration(monitorTime) * time.Second)
 
-					reportChan := make(chan time.Time， 1)
+					reportChan := make(chan time.Time, 1)
 					if _, ok := umountGearFs[id]; !ok {
 						umountGearFs[id] = reportChan
 					}
