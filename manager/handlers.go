@@ -238,6 +238,8 @@ func handlePreFetch(c echo.Context) error {
 	}
 
 	fmt.Println("Time used: ", time.Since(t))
+
+	fmt.Println("File number: ", len(files))
 	
 	return nil
 }
