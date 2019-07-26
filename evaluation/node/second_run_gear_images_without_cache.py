@@ -111,7 +111,7 @@ class Runner:
                 container.remove(force=True)
 
                 file_num = 0
-                private_path = os.path.join("/var/lib/gear/", private_repo)
+                private_path = os.path.join("/var/lib/gear/private", private_repo)
                 for root, dirs, files in os.walk(private_path):
                     for each in files:
                         file_num += 1
