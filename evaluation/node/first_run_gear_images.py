@@ -33,7 +33,7 @@ runCommand = "node /tmp/index.js"
 waitline = ""
 
 # result
-result = [["tag", "finishTime", "data"], ]
+result = [["tag", "finishTime", "data", "file_num"], ]
 
 class Runner:
 
@@ -56,7 +56,7 @@ class Runner:
             tags = self.images_to_pull[1][repo]
             for tag in tags:
                 private_repo = private_registry + repo + suffix + ":" + tag
-                
+
                 if localVolume != "":
                     if os.path.exists(localVolume) == False:
                         os.makedirs(localVolume)
@@ -116,7 +116,14 @@ class Runner:
                 # assert(rc == 0)
 
                 # record the image and its Running time
-                result.append([tag, finishTime, data])
+
+                file_num = 0
+                private_path = os.path.join("/var/lib/gear/", private_repo)
+                for root, dirs, files in os.walk(private_path):
+                    for each in files:
+                        file_num += 1
+
+                result.append([tag, finishTime, data, file_num])
 
                 if auto != True: 
                     raw_input("Next?")

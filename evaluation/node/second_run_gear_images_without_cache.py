@@ -33,7 +33,7 @@ runCommand = "node /tmp/index.js"
 waitline = ""
 
 # result
-result = [["tag", "finishTime", "data"], ]
+result = [["tag", "finishTime", "data", "file_num"], ]
 
 class Runner:
 
@@ -116,8 +116,14 @@ class Runner:
 
                 print "empty cache! \n"
 
+                file_num = 0
+                private_path = os.path.join("/var/lib/gear/", private_repo)
+                for root, dirs, files in os.walk(private_path):
+                    for each in files:
+                        file_num += 1
+
                 # record the image and its Running time
-                result.append([tag, finishTime, data])
+                result.append([tag, finishTime, data, file_num])
 
                 if auto != True: 
                     raw_input("Next?")
