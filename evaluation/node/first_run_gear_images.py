@@ -56,9 +56,10 @@ class Runner:
             tags = self.images_to_pull[1][repo]
             for tag in tags:
                 private_repo = private_registry + repo + suffix + ":" + tag
-
-                if os.path.exists(localVolume) == False:
-                    os.makedirs(localVolume)
+                
+                if localVolume != "":
+                    if os.path.exists(localVolume) == False:
+                        os.makedirs(localVolume)
 
                 print "start running: ", private_repo
 
