@@ -123,6 +123,8 @@ class Runner:
                     for each in files:
                         file_num += 1
 
+                print "file numbers: ", file_num
+
                 result.append([tag, finishTime, data, file_num])
 
                 if auto != True: 

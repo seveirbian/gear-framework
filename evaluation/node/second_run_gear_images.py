@@ -118,6 +118,8 @@ class Runner:
                     for each in files:
                         file_num += 1
 
+                print "file numbers: ", file_num
+
                 # record the image and its Running time
                 result.append([tag, finishTime, data, file_num])
 
