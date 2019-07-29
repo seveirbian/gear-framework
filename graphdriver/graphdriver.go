@@ -617,6 +617,13 @@ func (d *Driver) GetMetadata(id string) (map[string]string, error) {
 	fmt.Printf("\nGetMetadata func parameters: \n")
 	fmt.Printf("  id: %s\n", id)
 
+	_, err := os.Lstat(filepath.Join(d.home, id, "gear-lower"))
+	if err == nil {
+		_, err := os.Lstat(filepath.Join(d.home, id, "lower"))
+		if err == nil {
+			return nil, nil
+		}
+	}
 	metadata, err := d.dockerDriver.GetMetadata(id)
 
 	return metadata, err
