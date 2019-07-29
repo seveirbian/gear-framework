@@ -32,7 +32,7 @@ runEnvironment = ["MYSQL_ROOT_PASSWORD=1122",
                   "MYSQL_PASSWORD=1122", 
                   "MYSQL_DATABASE=games"]
 runPorts = {"3306/tcp": hostPort, }
-runVolumes = {}
+runVolumes = {os.path.join(pwd, "my.cnf"): {'bind': '/etc/mysql/my.cnf', 'mode': 'rw'}, }
 runWorking_dir = ""
 runCommand = ""
 waitline = "ready for connections"
