@@ -18,7 +18,7 @@ import MySQLdb
 auto = False
 
 private_registry = "202.114.10.146:9999/"
-suffix = "-gear"
+suffix = "-gearmd"
 
 apppath = ""
 
