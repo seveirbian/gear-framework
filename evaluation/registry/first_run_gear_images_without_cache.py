@@ -96,6 +96,16 @@ class Runner:
                         pass
 
                     try:
+                        req = urllib2.urlopen('http://localhost:%d/v2/'%hostPort)
+                        if req.read().find("{") >= 0:
+                            print "OK!"
+                        req.close()
+                        break
+                    except:
+                        time.sleep(0.1) # wait 100ms
+                        pass
+
+                    try:
                         req = urllib2.urlopen('http://localhost:%d/v2/_catalog'%hostPort)
                         if req.read().find("repositories") >= 0:
                             print "OK!"
