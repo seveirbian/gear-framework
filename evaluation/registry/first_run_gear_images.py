@@ -27,7 +27,7 @@ hostPort = 5000
 localVolume = ""
 pwd = os.getcwd()
 
-runEnvironment = []
+runEnvironment = ["SEARCH_BACKEND=sqlalchemy", ]
 runPorts = {"5000/tcp": hostPort, }
 runVolumes = {}
 runWorking_dir = ""
