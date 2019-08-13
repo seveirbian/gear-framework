@@ -187,6 +187,54 @@ func (d *Driver) CreateReadWrite(id, parent, mountlabel string, storageOpt map[s
 		if err != nil {
 			logger.Warnf("Fail to read gear-lower for %v", err)
 		}
+
+		// 
+		// 4. 修改gear容器层的lower文件，添加gear镜像层目录中的gear-work目录到其中
+		gearPath := target
+		data, err := ioutil.ReadFile(filepath.Join(gearPath, "link"))
+		if err != nil {
+			logger.Warnf("Fail to get gear image link for %v", err)
+		}
+
+		gearLink := "l/" + string(data)
+
+		gearWorkLink := gearLink + "/gear-work"
+
+		cData, err := ioutil.ReadFile(filepath.Join(d.home, id, "lower"))
+		if err != nil {
+			logger.Warnf("Fail to read container lower for %v", err)
+		}
+
+		cLower := string(cData)
+
+		cLowerSlice := strings.Split(cLower, ":")
+
+		var index int
+
+		for index = 0; index < len(cLowerSlice); index++ {
+			if cLowerSlice[index] == gearLink {
+				break
+			}
+		}
+
+		finalLower := []string{}
+		finalLower = append(finalLower, cLowerSlice[:index+1]...)
+		finalLower = append(finalLower, gearWorkLink)
+		finalLower = append(finalLower, cLowerSlice[index+1:]...)
+
+		stringLower := strings.Join(finalLower, ":")
+
+		// 删除原lower文件
+		err = os.Remove(filepath.Join(d.home, id, "lower"))
+		if err != nil {
+			logger.Warnf("Fail to remove container lower file for %v", err)
+		}
+
+		// 写lower文件
+		err = ioutil.WriteFile(filepath.Join(d.home, id, "lower"), []byte(stringLower), os.ModePerm)
+		if err != nil {
+			logger.Warnf("Fail to write new lower file for %v", err)
+		}
 	}
 
 	return
@@ -502,6 +550,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 			}
 
 			// 5. 将/gear目录使用gear fs挂载到/diff目录下
+			gearDiffDir = filepath.Join(gearPath, "gear-work")
 			gearFS := &fs.GearFS {
 				MountPoint: gearDiffDir, 
 				IndexImagePath: gearGearDir, 
@@ -843,6 +892,12 @@ func (d *Driver) ApplyDiff(id, parent string, diff io.Reader) (int64, error) {
 		err = os.MkdirAll(filepath.Join(d.home, id, "diff"), os.ModePerm)
 		if err != nil {
 			logger.Warnf("Fail to mkdir diff for %v", err)
+		}
+
+		// 5. 创建gear-work文件夹，用来存放使用过的文件
+		err = os.MkdirAll(filepath.Join(d.home, id, "gear-work"), os.ModePerm)
+		if err != nil {
+			logger.Warnf("Fail to mkdir gear-work for %v", err)
 		}
 
 		return size, nil

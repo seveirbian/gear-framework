@@ -380,6 +380,13 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 					if err != nil {
 						logger.Fatalf("Fail to create hard link for %v", err)
 					}
+
+					// 创建硬链接到gear-work目录
+					err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(filepath.Dir(f.indexImagePath), "gear-work", f.relativePath))
+					if err != nil {
+						logger.Fatalf("Fail to create hard link for %v", err)
+					}
+
 					// 判断当前目录是否是镜像层还是-init层
 					// 如果是镜像层，则将创建文件硬链接到-init层
 					// 如果是-init层，则啥都不做
@@ -447,6 +454,13 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 				if err != nil {
 					logger.Fatalf("Fail to create hard link for %v", err)
 				}
+
+				// 创建硬链接到gear-work目录
+				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(filepath.Dir(f.indexImagePath), "gear-work", f.relativePath))
+				if err != nil {
+					logger.Fatalf("Fail to create hard link for %v", err)
+				}
+
 				// 判断当前目录是否是镜像层还是-init层
 				// 如果是镜像层，则将创建文件硬链接到-init层
 				// 如果是-init层，则啥都不做
@@ -589,6 +603,11 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 					if err != nil {
 						logger.Fatalf("Fail to create hard link for %v", err)
 					}
+					// 创建硬链接到gear-work目录
+					err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(filepath.Dir(f.indexImagePath), "gear-work", f.relativePath))
+					if err != nil {
+						logger.Fatalf("Fail to create hard link for %v", err)
+					}
 					// 判断当前目录是否是镜像层还是-init层
 					// 如果是镜像层，则将创建文件硬链接到-init层
 					// 如果是-init层，则啥都不做
@@ -653,6 +672,12 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 
 				// 4. 创建硬连接到镜像私有缓存目录下
 				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+				if err != nil {
+					logger.Fatalf("Fail to create hard link for %v", err)
+				}
+
+				// 创建硬链接到gear-work目录
+				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(filepath.Dir(f.indexImagePath), "gear-work", f.relativePath))
 				if err != nil {
 					logger.Fatalf("Fail to create hard link for %v", err)
 				}
@@ -741,6 +766,12 @@ func (f *File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string,
 	target, err := os.Readlink(filepath.Join(f.indexImagePath, f.relativePath))
 	if err != nil {
 		logger.Warnf("Fail to read link for %v", err)
+	}
+
+	// 在gear-work目录创建软连接
+	err = os.Symlink(target, filepath.Join(filepath.Dir(f.indexImagePath), "gear-work", f.relativePath))
+	if err != nil {
+		logger.Fatalf("Fail to create symlink for %v", err)
 	}
 
 	return target, err
