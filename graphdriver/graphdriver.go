@@ -198,7 +198,13 @@ func (d *Driver) CreateReadWrite(id, parent, mountlabel string, storageOpt map[s
 
 		gearLink := "l/" + string(data)
 
-		gearWorkLink := gearLink + "/../gear-work"
+		gearLinkPath, err := os.Readlink(filepath.Join(d.home, "l", string(data)))
+		if err != nil {
+			logger.Warnf("Fail to read link for %v", err)
+		}
+
+		gearWorkLink := filepath.Join(gearLinkPath, "..", "gear-work")
+		gearWorkLink = strings.TrimPrefix(gearWorkLink, "../")
 
 		cData, err := ioutil.ReadFile(filepath.Join(d.home, id, "lower"))
 		if err != nil {
@@ -218,9 +224,9 @@ func (d *Driver) CreateReadWrite(id, parent, mountlabel string, storageOpt map[s
 		}
 
 		finalLower := []string{}
-		finalLower = append(finalLower, cLowerSlice[:index+1]...)
+		finalLower = append(finalLower, cLowerSlice[:index]...)
 		finalLower = append(finalLower, gearWorkLink)
-		finalLower = append(finalLower, cLowerSlice[index+1:]...)
+		finalLower = append(finalLower, cLowerSlice[index:]...)
 
 		stringLower := strings.Join(finalLower, ":")
 
@@ -302,20 +308,20 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 			// recordFilesChan := make(chan string, 100)
 			// recordFileNamesChan := make(chan string, 100)
 
-			initLayerPath := ""
-			if !strings.Contains(id, "-init") {
-				// 读取镜像层中lower文件内容
-				data, err := ioutil.ReadFile(filepath.Join(d.home, id, "lower"))
-				if err != nil {
-					logger.Warnf("Fail to read lower file for %v", err)
-				}
-				// 获取-init目录
-				dataSlices := strings.Split(string(data), ":")
-				lPath := dataSlices[0]
-				initLayerDir, err := os.Readlink(filepath.Join(d.home, lPath))
-				initLayerPath = filepath.Join(d.home, id, initLayerDir)
-				fmt.Println(initLayerPath)
-			}
+			initLayerPath := filepath.Join(gearPath, "gear-work")
+			// if !strings.Contains(id, "-init") {
+			// 	// 读取镜像层中lower文件内容
+			// 	data, err := ioutil.ReadFile(filepath.Join(d.home, id, "lower"))
+			// 	if err != nil {
+			// 		logger.Warnf("Fail to read lower file for %v", err)
+			// 	}
+			// 	// 获取-init目录
+			// 	dataSlices := strings.Split(string(data), ":")
+			// 	lPath := dataSlices[0]
+			// 	initLayerDir, err := os.Readlink(filepath.Join(d.home, lPath))
+			// 	initLayerPath = filepath.Join(d.home, id, initLayerDir)
+			// 	fmt.Println(initLayerPath)
+			// }
 
 			_, err = os.Lstat(filepath.Join(gearPath, "gear-diff", "RecordFiles"))
 			if err != nil {
@@ -550,7 +556,6 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 			}
 
 			// 5. 将/gear目录使用gear fs挂载到/diff目录下
-			gearDiffDir = filepath.Join(gearPath, "gear-work")
 			gearFS := &fs.GearFS {
 				MountPoint: gearDiffDir, 
 				IndexImagePath: gearGearDir, 

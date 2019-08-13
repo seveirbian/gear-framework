@@ -376,16 +376,30 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 				// 创建硬连接到镜像私有缓存目录下
 				_, err = os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 				if err != nil {
-					err := os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+					_, err := os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 					if err != nil {
-						logger.Fatalf("Fail to create hard link for %v", err)
+						err := os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+						if err != nil {
+							logger.Fatalf("Fail to create hard link for %v", err)
+						}
 					}
 
 					// 创建硬链接到diff目录
-					indexPath, _ := path.Split(f.indexImagePath)
-					err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "diff", f.relativePath))
+					indexPath := filepath.Join(f.indexImagePath, "..")
+					_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
 					if err != nil {
-						logger.Fatalf("Fail to create hard link for %v", err)
+						initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
+						_, err = os.Lstat(initDir)
+						if err != nil {
+							err := os.MkdirAll(initDir, os.ModePerm)
+							if err != nil {
+								logger.Warnf("Fail to create initDir for %v", err)
+							}
+						}
+						err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
+						if err != nil {
+							logger.Fatalf("Fail to create hard link for %v", err)
+						}
 					}
 
 					// 判断当前目录是否是镜像层还是-init层
@@ -451,16 +465,30 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 				tgt.Close()
 
 				// 4. 创建硬连接到镜像私有缓存目录下
-				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+				_, err = os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 				if err != nil {
-					logger.Fatalf("Fail to create hard link for %v", err)
+					err := os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+					if err != nil {
+						logger.Fatalf("Fail to create hard link for %v", err)
+					}
 				}
 
 				// 创建硬链接到diff目录
-				indexPath, _ := path.Split(f.indexImagePath)
-				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "diff", f.relativePath))
+				indexPath := filepath.Join(f.indexImagePath, "..")
+				_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
 				if err != nil {
-					logger.Fatalf("Fail to create hard link for %v", err)
+					initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
+					_, err = os.Lstat(initDir)
+					if err != nil {
+						err := os.MkdirAll(initDir, os.ModePerm)
+						if err != nil {
+							logger.Warnf("Fail to create initDir for %v", err)
+						}
+					}
+					err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
+					if err != nil {
+						logger.Fatalf("Fail to create hard link for %v", err)
+					}
 				}
 
 				// 判断当前目录是否是镜像层还是-init层
@@ -601,15 +629,29 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 				// 创建硬连接到镜像私有缓存目录下
 				_, err = os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 				if err != nil {
-					err := os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+					_, err := os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 					if err != nil {
-						logger.Fatalf("Fail to create hard link for %v", err)
+						err := os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+						if err != nil {
+							logger.Fatalf("Fail to create hard link for %v", err)
+						}
 					}
 					// 创建硬链接到diff目录
-					indexPath, _ := path.Split(f.indexImagePath)
-					err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "diff", f.relativePath))
+					indexPath := filepath.Join(f.indexImagePath, "..")
+					_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
 					if err != nil {
-						logger.Fatalf("Fail to create hard link for %v", err)
+						initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
+						_, err = os.Lstat(initDir)
+						if err != nil {
+							err := os.MkdirAll(initDir, os.ModePerm)
+							if err != nil {
+								logger.Warnf("Fail to create initDir for %v", err)
+							}
+						}
+						err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
+						if err != nil {
+							logger.Fatalf("Fail to create hard link for %v", err)
+						}
 					}
 					// 判断当前目录是否是镜像层还是-init层
 					// 如果是镜像层，则将创建文件硬链接到-init层
@@ -674,16 +716,30 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 				tgt.Close()
 
 				// 4. 创建硬连接到镜像私有缓存目录下
-				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+				_, err = os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 				if err != nil {
-					logger.Fatalf("Fail to create hard link for %v", err)
+					err := os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
+					if err != nil {
+						logger.Fatalf("Fail to create hard link for %v", err)
+					}
 				}
 
 				// 创建硬链接到diff目录
-				indexPath, _ := path.Split(f.indexImagePath)
-				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "diff", f.relativePath))
+				indexPath := filepath.Join(f.indexImagePath, "..")
+				_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
 				if err != nil {
-					logger.Fatalf("Fail to create hard link for %v", err)
+					initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
+					_, err = os.Lstat(initDir)
+					if err != nil {
+						err := os.MkdirAll(initDir, os.ModePerm)
+						if err != nil {
+							logger.Warnf("Fail to create initDir for %v", err)
+						}
+					}
+					err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
+					if err != nil {
+						logger.Fatalf("Fail to create hard link for %v", err)
+					}
 				}
 
 				// 判断当前目录是否是镜像层还是-init层
@@ -774,10 +830,21 @@ func (f *File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string,
 
 	// 在gear-work目录创建软连接
 	// 创建硬链接到diff目录
-	indexPath, _ := path.Split(f.indexImagePath)
-	err = os.Symlink(target, filepath.Join(indexPath, "diff", f.relativePath))
+	indexPath := filepath.Join(f.indexImagePath, "..")
+	_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
 	if err != nil {
-		logger.Fatalf("Fail to create symlink for %v", err)
+		initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
+		_, err = os.Lstat(initDir)
+		if err != nil {
+			err := os.MkdirAll(initDir, os.ModePerm)
+			if err != nil {
+				logger.Warnf("Fail to create initDir for %v", err)
+			}
+		}
+		err = os.Symlink(target, filepath.Join(indexPath, "gear-work", f.relativePath))
+		if err != nil {
+			logger.Fatalf("Fail to create symlink for %v", err)
+		}
 	}
 
 	return target, err
