@@ -198,7 +198,7 @@ func (d *Driver) CreateReadWrite(id, parent, mountlabel string, storageOpt map[s
 
 		gearLink := "l/" + string(data)
 
-		gearWorkLink := gearLink + "/gear-work"
+		gearWorkLink := gearLink + "../gear-work"
 
 		cData, err := ioutil.ReadFile(filepath.Join(d.home, id, "lower"))
 		if err != nil {
