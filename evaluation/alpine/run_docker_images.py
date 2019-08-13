@@ -8,12 +8,6 @@ import random
 import subprocess
 import signal
 import urllib2
-# package need to be installed, apt-get install python-pymongo
-import pymongo
-import shutil
-import xlwt
-# package need to be installed, apt-get install python-mysqldb
-import MySQLdb
 
 auto = False
 
@@ -22,19 +16,15 @@ private_registry = "202.114.10.146:9999/"
 apppath = ""
 
 # run paraments
-hostPort = 5000
-localVolume = ""
-pwd = os.getcwd()
-
+hostPort = 8080
 runEnvironment = []
 runPorts = {}
-runVolumes = {os.path.join(pwd, "hello.go"): {'bind': '/hello.go', 'mode': 'rw'},}
+runVolumes = {}
 runWorking_dir = ""
-runCommand = "go run /hello.go"
-waitline = "hello"
+runCommand = "echo hello"
+runWaitLine = "hello"
 
-# result
-result = [["tag", "finishTime"], ]
+
 
 class Runner:
 
@@ -58,10 +48,6 @@ class Runner:
             for tag in tags:
                 private_repo = private_registry + repo + ":" + tag
 
-                if localVolume != "":
-                    if os.path.exists(localVolume) == False:
-                        os.makedirs(localVolume)
-
                 print "start running: ", private_repo
 
                 # create a random name
@@ -71,19 +57,27 @@ class Runner:
                 startTime = time.time()
 
                 # run images
-                container = client.containers.create(image=private_repo, environment=runEnvironment,
-                                    ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
-                                    command=runCommand, name=runName, detach=True)
+                try:
+                    container = client.containers.create(image=private_repo, environment=runEnvironment,
+                                        ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
+                                        command=runCommand, name=runName, detach=True)
+
+                except docker.errors.APIError:
+                    print private_repo + " api error...\n\n"
+                except docker.errors.ImageNotFound:
+                    print private_repo + " image not fount...\n\n"
 
                 container.start()
 
                 while True:
-                    if waitline == "":
+                    if time.time() - startTime > 600:
                         break
-                    elif container.logs().find(waitline) >= 0:
+
+                    try:
+                        container.logs().find(runWaitLine) >= 0
                         break
-                    else:
-                        time.sleep(0.01)
+                    except:
+                        time.sleep(0.01) # wait 10ms
                         pass
 
                 # print run time
@@ -100,15 +94,16 @@ class Runner:
                 container.remove(force=True)
 
                 # record the image and its Running time
-                result.append([tag, finishTime])
+                self.record(private_repo, tag, finishTime)
 
                 if auto != True: 
                     raw_input("Next?")
                 else:
                     time.sleep(5)
 
-                if localVolume != "":
-                    shutil.rmtree(localVolume)
+    def record(self, repo, tag, time):
+        with open("./images_run.txt", "a") as f:
+            f.write("repo: "+str(repo)+" tag: "+str(tag)+" time: "+str(time)+"\n")
 
 class Generator:
     
@@ -124,18 +119,6 @@ class Generator:
 
         return self.images
 
-def get_net_data():
-    netCard = "/proc/net/dev"
-    fd = open(netCard, "r")
-
-    for line in fd.readlines():
-        if line.find("enp0s3") >= 0:
-            field = line.split()
-            data = float(field[1]) / 1024.0 / 1024.0
-
-    fd.close()
-    return data
-
 
 if __name__ == "__main__":
 
@@ -149,13 +132,3 @@ if __name__ == "__main__":
     runner = Runner(images)
 
     runner.run()
-
-    # create a workbook sheet
-    workbook = xlwt.Workbook()
-    sheet = workbook.add_sheet("run_time")
-
-    for row in range(len(result)):
-        for column in range(len(result[row])):
-            sheet.write(row, column, result[row][column])
-
-    workbook.save("./run.xls")

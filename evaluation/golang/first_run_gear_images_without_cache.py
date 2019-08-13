@@ -23,7 +23,7 @@ suffix = "-gear"
 apppath = ""
 
 # run paraments
-hostPort = 
+hostPort = 5000
 localVolume = ""
 pwd = os.getcwd()
 
