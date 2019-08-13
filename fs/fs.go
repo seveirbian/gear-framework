@@ -381,8 +381,9 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 						logger.Fatalf("Fail to create hard link for %v", err)
 					}
 
-					// 创建硬链接到gear-work目录
-					err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(filepath.Dir(f.indexImagePath), "gear-work", f.relativePath))
+					// 创建硬链接到diff目录
+					indexPath, _ := path.Split(f.indexImagePath)
+					err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "diff", f.relativePath))
 					if err != nil {
 						logger.Fatalf("Fail to create hard link for %v", err)
 					}
@@ -455,8 +456,9 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 					logger.Fatalf("Fail to create hard link for %v", err)
 				}
 
-				// 创建硬链接到gear-work目录
-				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(filepath.Dir(f.indexImagePath), "gear-work", f.relativePath))
+				// 创建硬链接到diff目录
+				indexPath, _ := path.Split(f.indexImagePath)
+				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "diff", f.relativePath))
 				if err != nil {
 					logger.Fatalf("Fail to create hard link for %v", err)
 				}
@@ -603,8 +605,9 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 					if err != nil {
 						logger.Fatalf("Fail to create hard link for %v", err)
 					}
-					// 创建硬链接到gear-work目录
-					err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(filepath.Dir(f.indexImagePath), "gear-work", f.relativePath))
+					// 创建硬链接到diff目录
+					indexPath, _ := path.Split(f.indexImagePath)
+					err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "diff", f.relativePath))
 					if err != nil {
 						logger.Fatalf("Fail to create hard link for %v", err)
 					}
@@ -676,8 +679,9 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 					logger.Fatalf("Fail to create hard link for %v", err)
 				}
 
-				// 创建硬链接到gear-work目录
-				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(filepath.Dir(f.indexImagePath), "gear-work", f.relativePath))
+				// 创建硬链接到diff目录
+				indexPath, _ := path.Split(f.indexImagePath)
+				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "diff", f.relativePath))
 				if err != nil {
 					logger.Fatalf("Fail to create hard link for %v", err)
 				}
@@ -769,7 +773,9 @@ func (f *File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string,
 	}
 
 	// 在gear-work目录创建软连接
-	err = os.Symlink(target, filepath.Join(filepath.Dir(f.indexImagePath), "gear-work", f.relativePath))
+	// 创建硬链接到diff目录
+	indexPath, _ := path.Split(f.indexImagePath)
+	err = os.Symlink(target, filepath.Join(indexPath, "diff", f.relativePath))
 	if err != nil {
 		logger.Fatalf("Fail to create symlink for %v", err)
 	}
