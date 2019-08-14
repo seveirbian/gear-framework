@@ -217,29 +217,39 @@ func (d *Driver) CreateReadWrite(id, parent, mountlabel string, storageOpt map[s
 
 		var index int
 
+		hasAdded := false
+
 		for index = 0; index < len(cLowerSlice); index++ {
-			if cLowerSlice[index] == gearLink {
-				break
+			if cLowerSlice[index] == gearWorkLink {
+				hasAdded = true
 			}
 		}
 
-		finalLower := []string{}
-		finalLower = append(finalLower, cLowerSlice[:index]...)
-		finalLower = append(finalLower, gearWorkLink)
-		finalLower = append(finalLower, cLowerSlice[index:]...)
+		if !hasAdded {
+			for index = 0; index < len(cLowerSlice); index++ {
+				if cLowerSlice[index] == gearLink {
+					break
+				}
+			}
 
-		stringLower := strings.Join(finalLower, ":")
+			finalLower := []string{}
+			finalLower = append(finalLower, cLowerSlice[:index]...)
+			finalLower = append(finalLower, gearWorkLink)
+			finalLower = append(finalLower, cLowerSlice[index:]...)
 
-		// 删除原lower文件
-		err = os.Remove(filepath.Join(d.home, id, "lower"))
-		if err != nil {
-			logger.Warnf("Fail to remove container lower file for %v", err)
-		}
+			stringLower := strings.Join(finalLower, ":")
 
-		// 写lower文件
-		err = ioutil.WriteFile(filepath.Join(d.home, id, "lower"), []byte(stringLower), os.ModePerm)
-		if err != nil {
-			logger.Warnf("Fail to write new lower file for %v", err)
+			// 删除原lower文件
+			err = os.Remove(filepath.Join(d.home, id, "lower"))
+			if err != nil {
+				logger.Warnf("Fail to remove container lower file for %v", err)
+			}
+
+			// 写lower文件
+			err = ioutil.WriteFile(filepath.Join(d.home, id, "lower"), []byte(stringLower), os.ModePerm)
+			if err != nil {
+				logger.Warnf("Fail to write new lower file for %v", err)
+			}
 		}
 	}
 
@@ -597,16 +607,10 @@ func (d *Driver) Put(id string) error {
 	fmt.Printf("\nPut func parameters: \n")
 	fmt.Printf("  id: %s\n", id)
 
-	t := time.Now()
-	Eterr := d.dockerDriver.Put(id)
-	fmt.Println("Put time: ", time.Since(t))
-
 	// 1. 检测孩子的diff目录中是否有gear-image软链接
 	path := filepath.Join(d.home, id, "gear-lower")
 	gearPath, err := os.Readlink(path)
-	if err != nil {
-		return Eterr
-	} else {
+	if err == nil {
 		// 2. 有，卸载diff目录
 		gearDiffDir := filepath.Join(gearPath, "diff")
 
@@ -639,9 +643,13 @@ func (d *Driver) Put(id string) error {
 		} else {
 			gearCtr[gearDiffDir] -= 1
 		}
-
-		return nil
 	}
+
+	t := time.Now()
+	Eterr := d.dockerDriver.Put(id)
+	fmt.Println("Put time: ", time.Since(t))
+
+	return Eterr
 }
 
 // 查看id是否已经被挂载了
@@ -671,13 +679,13 @@ func (d *Driver) GetMetadata(id string) (map[string]string, error) {
 	fmt.Printf("\nGetMetadata func parameters: \n")
 	fmt.Printf("  id: %s\n", id)
 
-	_, err := os.Lstat(filepath.Join(d.home, id, "gear-lower"))
-	if err == nil {
-		_, err := os.Lstat(filepath.Join(d.home, id, "lower"))
-		if err == nil {
-			return nil, nil
-		}
-	}
+	// _, err := os.Lstat(filepath.Join(d.home, id, "gear-lower"))
+	// if err == nil {
+	// 	_, err := os.Lstat(filepath.Join(d.home, id, "lower"))
+	// 	if err == nil {
+	// 		return nil, nil
+	// 	}
+	// }
 	metadata, err := d.dockerDriver.GetMetadata(id)
 
 	return metadata, err

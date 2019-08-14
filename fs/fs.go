@@ -335,8 +335,8 @@ type File struct {
 }
 
 func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
-	// fmt.Println("Attr()!")
-	// fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
+	fmt.Println("Attr()!")
+	fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
 	// 首先查看上层目录是否已经存在该文件
 	upperFileInfo, err := os.Lstat(filepath.Join(f.upperPath, f.relativePath))
 	if err == nil {
@@ -379,24 +379,6 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 					_, err := os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 					if err != nil {
 						err := os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
-						if err != nil {
-							logger.Fatalf("Fail to create hard link for %v", err)
-						}
-					}
-
-					// 创建硬链接到diff目录
-					indexPath := filepath.Join(f.indexImagePath, "..")
-					_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
-					if err != nil {
-						initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
-						_, err = os.Lstat(initDir)
-						if err != nil {
-							err := os.MkdirAll(initDir, os.ModePerm)
-							if err != nil {
-								logger.Warnf("Fail to create initDir for %v", err)
-							}
-						}
-						err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
 						if err != nil {
 							logger.Fatalf("Fail to create hard link for %v", err)
 						}
@@ -468,24 +450,6 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 				_, err = os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 				if err != nil {
 					err := os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
-					if err != nil {
-						logger.Fatalf("Fail to create hard link for %v", err)
-					}
-				}
-
-				// 创建硬链接到diff目录
-				indexPath := filepath.Join(f.indexImagePath, "..")
-				_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
-				if err != nil {
-					initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
-					_, err = os.Lstat(initDir)
-					if err != nil {
-						err := os.MkdirAll(initDir, os.ModePerm)
-						if err != nil {
-							logger.Warnf("Fail to create initDir for %v", err)
-						}
-					}
-					err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
 					if err != nil {
 						logger.Fatalf("Fail to create hard link for %v", err)
 					}
@@ -573,6 +537,28 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	// fmt.Println("f.Attr< ", attr, " >")
 
 	go func() {
+		if f.isRegular {
+			// 创建硬链接到gear-work目录
+			indexPath := filepath.Join(f.indexImagePath, "..")
+			_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
+			if err != nil {
+				initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
+				_, err = os.Lstat(initDir)
+				if err != nil {
+				err := os.MkdirAll(initDir, os.ModePerm)
+				if err != nil {
+					logger.Warnf("Fail to create initDir for %v", err)
+				}
+			}
+			err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
+			if err != nil {
+				logger.Fatalf("Fail to create hard link for %v", err)
+				}
+			}
+		}
+	}()
+
+	go func() {
 		if monitorFlag {
 			if f.privateCacheName != "" {
 				RecordChan <- types.MonitorFile {
@@ -594,8 +580,8 @@ func (f *File) Access(ctx context.Context, req *fuse.AccessRequest) error {
 }
 
 func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
-	// fmt.Println("Attr()!")
-	// fmt.Println(f)
+	fmt.Println("Open()!")
+	fmt.Println(f)
 	var fileHandler = FileHandler{}
 
 	// 首先查看上层目录是否已经存在该文件
@@ -632,23 +618,6 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 					_, err := os.Lstat(filepath.Join(f.privateCachePath, f.privateCacheName))
 					if err != nil {
 						err := os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(f.privateCachePath, f.privateCacheName))
-						if err != nil {
-							logger.Fatalf("Fail to create hard link for %v", err)
-						}
-					}
-					// 创建硬链接到diff目录
-					indexPath := filepath.Join(f.indexImagePath, "..")
-					_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
-					if err != nil {
-						initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
-						_, err = os.Lstat(initDir)
-						if err != nil {
-							err := os.MkdirAll(initDir, os.ModePerm)
-							if err != nil {
-								logger.Warnf("Fail to create initDir for %v", err)
-							}
-						}
-						err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
 						if err != nil {
 							logger.Fatalf("Fail to create hard link for %v", err)
 						}
@@ -724,24 +693,6 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 					}
 				}
 
-				// 创建硬链接到diff目录
-				indexPath := filepath.Join(f.indexImagePath, "..")
-				_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
-				if err != nil {
-					initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
-					_, err = os.Lstat(initDir)
-					if err != nil {
-						err := os.MkdirAll(initDir, os.ModePerm)
-						if err != nil {
-							logger.Warnf("Fail to create initDir for %v", err)
-						}
-					}
-					err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
-					if err != nil {
-						logger.Fatalf("Fail to create hard link for %v", err)
-					}
-				}
-
 				// 判断当前目录是否是镜像层还是-init层
 				// 如果是镜像层，则将创建文件硬链接到-init层
 				// 如果是-init层，则啥都不做
@@ -806,6 +757,28 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 	}
 
 	go func() {
+		if f.isRegular {
+			// 创建硬链接到gear-work目录
+			indexPath := filepath.Join(f.indexImagePath, "..")
+			_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
+			if err != nil {
+				initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
+				_, err = os.Lstat(initDir)
+				if err != nil {
+				err := os.MkdirAll(initDir, os.ModePerm)
+				if err != nil {
+					logger.Warnf("Fail to create initDir for %v", err)
+				}
+			}
+			err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
+			if err != nil {
+				logger.Fatalf("Fail to create hard link for %v", err)
+				}
+			}
+		}
+	}()
+
+	go func() {
 		if monitorFlag {
 			if f.privateCacheName != "" {
 				RecordChan <- types.MonitorFile {
@@ -823,6 +796,9 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 }
 
 func (f *File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
+	fmt.Println("Readlink()!")
+	fmt.Println(f)
+
 	target, err := os.Readlink(filepath.Join(f.indexImagePath, f.relativePath))
 	if err != nil {
 		logger.Warnf("Fail to read link for %v", err)
@@ -879,6 +855,8 @@ func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fu
 }
 
 func (fh *FileHandler) ReadAll(ctx context.Context) ([]byte, error) {
+	fmt.Println("ReadAll()!")
+	fmt.Println(fh)
 
 	var data []byte
 	var err error

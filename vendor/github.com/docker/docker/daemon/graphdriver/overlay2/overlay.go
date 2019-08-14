@@ -513,7 +513,11 @@ func (d *Driver) getLowerDirs(id string) ([]string, error) {
 		for _, s := range strings.Split(string(lowers), ":") {
 			lp, err := os.Readlink(path.Join(d.home, s))
 			if err != nil {
-				return nil, err
+				if path.IsAbs(path.Join(d.home, s)) {
+					lowersArray = append(lowersArray, path.Clean(path.Join(d.home, s)))
+				} else {
+					return nil, err
+				}
 			}
 			lowersArray = append(lowersArray, path.Clean(path.Join(d.home, linkDir, lp)))
 		}
