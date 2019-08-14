@@ -538,6 +538,9 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	// fmt.Println("f.Attr< ", attr, " >")
 
 	go func() {
+		if f.privateCacheName == "" {
+			return
+		}
 		if f.isRegular {
 			// 创建硬链接到gear-work目录
 			indexPath := filepath.Join(f.indexImagePath, "..")
@@ -758,6 +761,9 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 	}
 
 	go func() {
+		if f.privateCacheName == "" {
+			return
+		}
 		if f.isRegular {
 			// 创建硬链接到gear-work目录
 			indexPath := filepath.Join(f.indexImagePath, "..")
