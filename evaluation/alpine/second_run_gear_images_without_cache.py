@@ -2,14 +2,14 @@ import sys
 # package need to be installed, pip install docker
 import docker 
 import time
+import random
 import yaml
 import os
-import random
 import subprocess
 import signal
 import urllib2
-import psycopg2
 import shutil
+import psycopg2
 import pymongo
 import xlwt
 # package need to be installed, apt-get install python-mysqldb
@@ -18,7 +18,7 @@ import MySQLdb
 auto = False
 
 private_registry = "202.114.10.146:9999/"
-suffix = "-gear"
+suffix = "-gearmd"
 
 apppath = ""
 
@@ -99,18 +99,19 @@ class Runner:
 
                 print "pull data: ", data
 
-                print "\n"
-
                 try: 
                     container.kill()
                 except:
                     print "kill fail!"
                     pass
-
+                    
                 container.remove(force=True)
-                # cmd = '%s kill %s' % ("docker", runName)
-                # rc = os.system(cmd)
-                # assert(rc == 0)
+
+                # delete files under /var/lib/gear/public/
+                shutil.rmtree('/var/lib/gear/public/')
+                os.mkdir('/var/lib/gear/public/')
+
+                print "empty cache! \n"
 
                 # record the image and its Running time
                 result.append([tag, finishTime, data])
@@ -170,4 +171,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save("./first_run.xls")
+    workbook.save("./second_run_without_cache.xls")

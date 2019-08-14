@@ -59,14 +59,8 @@ class Pusher:
                     finishTime = time.time() - startTime
                     print "finished in " , finishTime, "s\n"
 
-                    # record the image and its pulling time
-                    self.record(repo, tag, finishTime)
                 except docker.errors.NotFound:
                     print repo + " not found...\n\n"
-
-    def record(self, repo, tag, time):
-        with open("./images_pushed.txt", "a") as f:
-            f.write("repo: "+str(repo)+" tag: "+str(tag)+" time: "+str(time)+"\n")
 
 class Generator:
 
