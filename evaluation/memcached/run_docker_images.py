@@ -81,12 +81,18 @@ class Runner:
 
                     try:
                         conn = memcache.Client(["localhost:11211"])
-                        conn.set("game", "Three kingdoms")
+                        ret = conn.set("game", "Three kingdoms")
+                        if ret != True:
+                            continue
                         print "successfully insert!"
-                        conn.replace("game", "dota2")
+                        ret = conn.replace("game", "dota2")
+                        if ret != True:
+                            continue
                         print "successfully update!"
                         print conn.get("game")
-                        conn.delete("game")
+                        ret = conn.delete("game")
+                        if ret != True:
+                            continue
                         print "successfully delete!"
                         break
                     except:
