@@ -538,7 +538,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	// fmt.Println("f.Attr< ", attr, " >")
 
 	go func() {
-		if f.privateCacheName == "" {
+		if f.relativePath == "/prefetched" || f.relativePath == "/RecordFiles" {
 			return
 		}
 		if f.isRegular {
@@ -761,7 +761,7 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 	}
 
 	go func() {
-		if f.privateCacheName == "" {
+		if f.relativePath == "/prefetched" || f.relativePath == "/RecordFiles" {
 			return
 		}
 		if f.isRegular {
