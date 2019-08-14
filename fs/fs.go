@@ -337,6 +337,7 @@ type File struct {
 func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	fmt.Println("Attr()!")
 	fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
+	fmt.Println(f)
 	// 首先查看上层目录是否已经存在该文件
 	upperFileInfo, err := os.Lstat(filepath.Join(f.upperPath, f.relativePath))
 	if err == nil {
