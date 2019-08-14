@@ -93,7 +93,6 @@ class Runner:
                         print conn.get("game")
                         conn.delete("game")
                         print "successfully delete!"
-                        db.close()
                         break
                     except:
                         time.sleep(0.1) # wait 100ms
