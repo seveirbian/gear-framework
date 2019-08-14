@@ -1,7 +1,7 @@
 ---
 - repo:
-  - ubuntu
-- ubuntu:
+  - alpine
+- alpine:
   - "2.6"
   - "2.7"
   - "3.1"
