@@ -81,10 +81,16 @@ class Runner:
 
                     try:
                         req = urllib2.urlopen('http://localhost:%d/ui/dc1/services'%hostPort)
-                        if req.read().find("CONSUL_VERSION") >= 0:
-                            print "OK!"
-                        req.close()
-                        break
+                        if req.code == 200:
+                            break
+                    except:
+                        time.sleep(0.1) # wait 100ms
+                        pass
+
+                    try:
+                        req = urllib2.urlopen('http://localhost:%d/ui/#/dc1/services'%hostPort)
+                        if req.code == 200:
+                            break
                     except:
                         time.sleep(0.1) # wait 100ms
                         pass
