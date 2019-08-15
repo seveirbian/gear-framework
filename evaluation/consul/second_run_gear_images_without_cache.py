@@ -30,7 +30,7 @@ runEnvironment = []
 runPorts = {"8500/tcp": hostPort, "8600/tcp": 8600,}
 runVolumes = {}
 runWorking_dir = ""
-runCommand = "consul"
+runCommand = ""
 waitline = ""
 
 # result
