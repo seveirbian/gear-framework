@@ -335,9 +335,9 @@ type File struct {
 }
 
 func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
-	fmt.Println("Attr()!")
-	fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
-	fmt.Println(f)
+	// fmt.Println("Attr()!")
+	// fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
+	// fmt.Println(f)
 	// 首先查看上层目录是否已经存在该文件
 	upperFileInfo, err := os.Lstat(filepath.Join(f.upperPath, f.relativePath))
 	if err == nil {
@@ -584,8 +584,8 @@ func (f *File) Access(ctx context.Context, req *fuse.AccessRequest) error {
 }
 
 func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
-	fmt.Println("Open()!")
-	fmt.Println(f)
+	// fmt.Println("Open()!")
+	// fmt.Println(f)
 	var fileHandler = FileHandler{}
 
 	// 首先查看上层目录是否已经存在该文件
@@ -803,8 +803,8 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 }
 
 func (f *File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
-	fmt.Println("Readlink()!")
-	fmt.Println(f)
+	// fmt.Println("Readlink()!")
+	// fmt.Println(f)
 
 	target, err := os.Readlink(filepath.Join(f.indexImagePath, f.relativePath))
 	if err != nil {
@@ -862,8 +862,8 @@ func (fh *FileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fu
 }
 
 func (fh *FileHandler) ReadAll(ctx context.Context) ([]byte, error) {
-	fmt.Println("ReadAll()!")
-	fmt.Println(fh)
+	// fmt.Println("ReadAll()!")
+	// fmt.Println(fh)
 
 	var data []byte
 	var err error
