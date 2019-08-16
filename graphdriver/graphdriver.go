@@ -534,18 +534,22 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 						fmt.Println("Time used: ", time.Since(t))
 					} 
 
-					// 将文件link到-init层目录
+					// 将文件link到gear-work层目录
 					lt := time.Now()
 					fmt.Println(lt)
 					if initLayerPath != "" {
-						// 将文件link到-init层目录
+						// 将文件link到gear-work层目录
 						for relativePath, file := range tamplate {
 							_, err = os.Lstat(filepath.Join(initLayerPath, relativePath))
 							if err != nil {
 								initDir := goPath.Dir(filepath.Join(initLayerPath, relativePath))
 								_, err = os.Lstat(initDir)
 								if err != nil {
-									err := os.MkdirAll(initDir, os.ModePerm)
+									fileInfo, err := os.Lstat(filepath.Join(gearGearDir, relativePath))
+									if err != nil {
+										logger.Warnf("Fail to get file info for %v", err)
+									}
+									err = os.MkdirAll(initDir, fileInfo.Mode())
 									if err != nil {
 										logger.Warnf("Fail to create initDir for %v", err)
 									}
