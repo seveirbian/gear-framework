@@ -2,10 +2,10 @@
 - repo:
   - debian
 - debian:
+  - "buster-20180312"
   - "buster-20180426"
   - "buster-20180625"
   - "buster-20180716"
-  - "buster-20180831"
   - "buster-20180831"
   - "buster-20181011"
   - "buster-20181112"
