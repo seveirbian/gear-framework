@@ -547,7 +547,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 			_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
 			if err != nil {
 				initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
-				initDirInfo, err = os.Lstat(initDir)
+				initDirInfo, err := os.Lstat(initDir)
 				if err != nil {
 					err := os.MkdirAll(initDir, initDirInfo.Mode())
 					if err != nil {
@@ -770,7 +770,7 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 			_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
 			if err != nil {
 				initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
-				initDirInfo, err = os.Lstat(initDir)
+				initDirInfo, err := os.Lstat(initDir)
 				if err != nil {
 					err := os.MkdirAll(initDir, initDirInfo.Mode())
 					if err != nil {
