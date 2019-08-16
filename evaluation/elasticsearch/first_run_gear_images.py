@@ -21,12 +21,12 @@ suffix = "-gear"
 apppath = ""
 
 # run paraments
-hostPort = 7200
+hostPort = 9200
 localVolume = ""
 pwd = os.getcwd()
 
 runEnvironment = ["discovery.type=single-node", ]
-runPorts = {"7200/tcp": hostPort, "7300/tcp": 7300, }
+runPorts = {"9200/tcp": hostPort, "9300/tcp": 9300, }
 runVolumes = {}
 runWorking_dir = ""
 runCommand = ""
