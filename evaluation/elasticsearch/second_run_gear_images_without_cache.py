@@ -30,7 +30,7 @@ runPorts = {"7200/tcp": hostPort, "7300/tcp": 7300, }
 runVolumes = {}
 runWorking_dir = ""
 runCommand = ""
-waitline = ""
+waitline = "starting ..."
 
 # result
 result = [["tag", "finishTime", "data"], ]
@@ -80,12 +80,20 @@ class Runner:
                 container.start()
 
                 while True:
+                    if container.logs().find(waitline) >= 0:
+                        break
+                    else:
+                        time.sleep(0.01)
+                        pass
+
+                while True:
                     if time.time() - startTime > 600:
                         break
 
                     try:
                         es = Elasticsearch(['localhost:9200'])
-                        print es.cluster.health()
+                        if es.ping() != True:
+                            continue
                         b = {'name': 'three kingdom', "price": 355}
                         es.index(index='games', doc_type='game', body=b, id=1)
                         print "successfully create table games!"
