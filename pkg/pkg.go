@@ -78,13 +78,9 @@ func HashAFileInMD5(path string) string {
 }
 
 func CopyPath(srcPath string, targetPath string, relativePath string) bool {
-	// fmt.Println("<", srcPath)
-	// fmt.Println(targetPath)
-	// fmt.Println(relativePath, ">")
-
-	if strings.Contains(relativePath, "elasticsearch") {
-		fmt.Println(relativePath)
-	}
+	fmt.Println("<", srcPath)
+	fmt.Println(targetPath)
+	fmt.Println(relativePath, ">")
 
 	dir, _ := path.Split(relativePath)
 
