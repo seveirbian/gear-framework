@@ -24,9 +24,9 @@ hostPort = 7200
 localVolume = ""
 pwd = os.getcwd()
 
-runEnvironment = []
+runEnvironment = ["discovery.type=single-node", ]
 runPorts = {"7200/tcp": hostPort, "7300/tcp": 7300, }
-runVolumes = {"discovery.type=single-node", }
+runVolumes = {}
 runWorking_dir = ""
 runCommand = ""
 waitline = ""

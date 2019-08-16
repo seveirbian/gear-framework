@@ -2,18 +2,16 @@ import sys
 # package need to be installed, pip install docker
 import docker 
 import time
-import random
 import yaml
 import os
+import random
 import subprocess
 import signal
 import urllib2
 import shutil
-import psycopg2
-import pymongo
 import xlwt
-# package need to be installed, apt-get install python-mysqldb
-import MySQLdb
+# package need to be installed, pip install elasticsearch
+from elasticsearch import Elasticsearch
 
 auto = False
 
@@ -27,9 +25,9 @@ hostPort = 7200
 localVolume = ""
 pwd = os.getcwd()
 
-runEnvironment = []
+runEnvironment = ["discovery.type=single-node", ]
 runPorts = {"7200/tcp": hostPort, "7300/tcp": 7300, }
-runVolumes = {"discovery.type=single-node", }
+runVolumes = {}
 runWorking_dir = ""
 runCommand = ""
 waitline = ""
