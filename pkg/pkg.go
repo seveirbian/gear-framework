@@ -78,9 +78,9 @@ func HashAFileInMD5(path string) string {
 }
 
 func CopyPath(srcPath string, targetPath string, relativePath string) bool {
-	fmt.Println("<", srcPath)
-	fmt.Println(targetPath)
-	fmt.Println(relativePath, ">")
+	// fmt.Println("<", srcPath)
+	// fmt.Println(targetPath)
+	// fmt.Println(relativePath, ">")
 
 	dir, _ := path.Split(relativePath)
 
@@ -95,9 +95,9 @@ func CopyPath(srcPath string, targetPath string, relativePath string) bool {
 		_, err := os.Lstat(path.Join(targetPath, tmpPath))
 		if err != nil {
 			fi, err := os.Lstat(path.Join(srcPath, tmpPath))
-			fmt.Println("<", fi.Name())
-			fmt.Println(fi.Mode())
-			fmt.Println(int(fi.Sys().(*syscall.Stat_t).Uid), int(fi.Sys().(*syscall.Stat_t).Gid), ">")
+			// fmt.Println("<", fi.Name())
+			// fmt.Println(fi.Mode())
+			// fmt.Println(int(fi.Sys().(*syscall.Stat_t).Uid), int(fi.Sys().(*syscall.Stat_t).Gid), ">")
 			if err != nil {
 				logrus.Warnf("Fail to lstat srcPath for %v", err)
 				return false
