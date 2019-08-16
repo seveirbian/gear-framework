@@ -78,6 +78,10 @@ func HashAFileInMD5(path string) string {
 }
 
 func CopyPath(srcPath string, targetPath string, relativePath string) bool {
+	if strings.Contains(relativePath, "elasticsearch") {
+		fmt.Println(relativePath)
+	}
+
 	dir, _ := path.Split(relativePath)
 
 	parsedDir := strings.TrimPrefix(dir, "/")
@@ -91,6 +95,7 @@ func CopyPath(srcPath string, targetPath string, relativePath string) bool {
 		_, err := os.Lstat(path.Join(targetPath, tmpPath))
 		if err != nil {
 			fi, err := os.Lstat(path.Join(srcPath, tmpPath))
+			fmt.Println(fi)
 			if err != nil {
 				logrus.Warnf("Fail to lstat srcPath for %v", err)
 				return false
