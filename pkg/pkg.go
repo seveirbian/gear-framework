@@ -5,6 +5,8 @@ import (
 	"os"
 	"fmt"
 	"net"
+	"path"
+	"syscall"
 	"strings"
 	"strconv"
 	"hash/fnv"
@@ -75,7 +77,39 @@ func HashAFileInMD5(path string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
+func CopyPath(srcPath string, targetPath string, relativePath string) bool {
+	dir, _ := path.Split(relativePath)
 
+	parsedDir := strings.TrimPrefix(dir, "/")
+	parsedDir = strings.TrimSuffix(parsedDir, "/")
+	dirArray := strings.Split(dir, "/")
+
+	tmpPath := ""
+
+	for _, dir := range dirArray {
+		tmpPath = path.Join(tmpPath, dir)
+		_, err := os.Lstat(path.Join(targetPath, tmpPath))
+		if err != nil {
+			fi, err := os.Lstat(path.Join(srcPath, tmpPath))
+			if err != nil {
+				logrus.Warnf("Fail to lstat srcPath for %v", err)
+				return false
+			}
+			err = os.Mkdir(path.Join(targetPath, tmpPath), fi.Mode())
+			if err != nil {
+				logrus.Warnf("Fail to mkdir for %v", err)
+				return false
+			}
+			err = os.Chown(path.Join(targetPath, tmpPath), int(fi.Sys().(*syscall.Stat_t).Uid), int(fi.Sys().(*syscall.Stat_t).Gid))
+			if err != nil {
+				logrus.Warnf("Fail to chown for %v", err)
+				return false
+			}
+		}
+	}
+
+	return true
+}
 
 
 

@@ -545,13 +545,16 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 								initDir := goPath.Dir(filepath.Join(initLayerPath, relativePath))
 								_, err = os.Lstat(initDir)
 								if err != nil {
-									fileInfo, err := os.Lstat(filepath.Join(gearGearDir, relativePath))
-									if err != nil {
-										logger.Warnf("Fail to get file info for %v", err)
-									}
-									err = os.MkdirAll(initDir, fileInfo.Mode())
-									if err != nil {
-										logger.Warnf("Fail to create initDir for %v", err)
+									// 复制路径
+									if pkg.CopyPath(gearGearDir, initLayerPath, relativePath) != true {
+										fileInfo, err := os.Lstat(filepath.Join(gearGearDir, relativePath))
+										if err != nil {
+											logger.Warnf("Fail to get file info for %v", err)
+										}
+										err = os.MkdirAll(initDir, fileInfo.Mode())
+										if err != nil {
+											logger.Warnf("Fail to create initDir for %v", err)
+										}
 									}
 								}
 								err = os.Link(filepath.Join("/var/lib/gear/public", file), filepath.Join(initLayerPath, relativePath))

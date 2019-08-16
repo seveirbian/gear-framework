@@ -25,6 +25,7 @@ import (
 	"golang.org/x/net/context"
 	"github.com/sirupsen/logrus"
 	"github.com/seveirbian/gear/types"
+	"github.com/seveirbian/gear/pkg"
 )
 
 var (
@@ -547,11 +548,14 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 			_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
 			if err != nil {
 				initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
-				initDirInfo, err := os.Lstat(initDir)
+				_, err := os.Lstat(initDir)
 				if err != nil {
-					err := os.MkdirAll(initDir, initDirInfo.Mode())
-					if err != nil {
-						logger.Warnf("Fail to create initDir for %v", err)
+					// 复制路径
+					if pkg.CopyPath(f.indexImagePath, filepath.Join(indexPath, "gear-work"), f.relativePath) != true {
+						err := os.MkdirAll(initDir, os.ModePerm)
+						if err != nil {
+							logger.Warnf("Fail to create initDir for %v", err)
+						}
 					}
 				}
 				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
@@ -770,11 +774,14 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 			_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
 			if err != nil {
 				initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
-				initDirInfo, err := os.Lstat(initDir)
+				_, err := os.Lstat(initDir)
 				if err != nil {
-					err := os.MkdirAll(initDir, initDirInfo.Mode())
-					if err != nil {
-						logger.Warnf("Fail to create initDir for %v", err)
+					// 复制路径
+					if pkg.CopyPath(f.indexImagePath, filepath.Join(indexPath, "gear-work"), f.relativePath) != true {
+						err := os.MkdirAll(initDir, os.ModePerm)
+						if err != nil {
+							logger.Warnf("Fail to create initDir for %v", err)
+						}
 					}
 				}
 				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
