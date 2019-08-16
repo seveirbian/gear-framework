@@ -1,0 +1,24 @@
+---
+- repo:
+  - debian
+- debian:
+  - "buster-20180426"
+  - "buster-20180625"
+  - "buster-20180716"
+  - "buster-20180831"
+  - "buster-20180831"
+  - "buster-20181011"
+  - "buster-20181112"
+  - "buster-20181226"
+  - "buster-20190122"
+  - "buster-20190204"
+  - "buster-20190228"
+  - "buster-20190326"
+  - "buster-20190506"
+  - "buster-20190610"
+  - "buster-20190708"
+  - "buster-20190812"
+  - "buster-backports"
+  - "bullseye-20190708"
+  - "bullseye-20190812"
+  - "bullseye-backports"
