@@ -16,7 +16,6 @@ from elasticsearch import Elasticsearch
 auto = False
 
 private_registry = "202.114.10.146:9999/"
-suffix = "-gearmd"
 
 apppath = ""
 
@@ -27,13 +26,13 @@ pwd = os.getcwd()
 
 runEnvironment = []
 runPorts = {"11211/tcp": hostPort,}
-runVolumes = {os.path.join(pwd, "hello.rb"): {'bind': '/hello.rb', 'mode': 'rw'},}
+runVolumes = {os.path.join(pwd, "hello.php"): {'bind': '/hello.php', 'mode': 'rw'},}
 runWorking_dir = ""
-runCommand = "ruby /hello.rb"
+runCommand = "php /hello.php"
 waitline = "hello"
 
 # result
-result = [["tag", "finishTime", "local data", "pull data"], ]
+result = [["tag", "finishTime"], ]
 
 class Runner:
 
@@ -55,7 +54,7 @@ class Runner:
         for repo in repos:
             tags = self.images_to_pull[1][repo]
             for tag in tags:
-                private_repo = private_registry + repo + suffix + ":" + tag
+                private_repo = private_registry + repo + ":" + tag
 
                 if localVolume != "":
                     if os.path.exists(localVolume) == False:
@@ -68,9 +67,6 @@ class Runner:
 
                 # get present time
                 startTime = time.time()
-
-                # get present net data
-                cnetdata = get_net_data()
 
                 # run images
                 container = client.containers.create(image=private_repo, environment=runEnvironment,
@@ -89,16 +85,7 @@ class Runner:
                 # print run time
                 finishTime = time.time() - startTime
 
-                print "finished in " , finishTime, "s"
-
-                container_path = os.path.join("/var/lib/gear/private", private_repo)
-                local_data = subprocess.check_output(['du','-sh', container_path]).split()[0].decode('utf-8')
-
-                print "local data: ", local_data
-
-                pull_data = get_net_data() - cnetdata
-
-                print "pull data: ", pull_data
+                print "finished in " , finishTime, "s\n"
 
                 try: 
                     container.kill()
@@ -108,14 +95,8 @@ class Runner:
                     
                 container.remove(force=True)
 
-                # delete files under /var/lib/gear/public/
-                shutil.rmtree('/var/lib/gear/public/')
-                os.mkdir('/var/lib/gear/public/')
-
-                print "empty cache! \n"
-
                 # record the image and its Running time
-                result.append([tag, finishTime, local_data, pull_data])
+                result.append([tag, finishTime])
 
                 if auto != True: 
                     raw_input("Next?")
@@ -151,6 +132,7 @@ def get_net_data():
     fd.close()
     return data
 
+
 if __name__ == "__main__":
 
     if len(sys.argv) == 2:
@@ -172,4 +154,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save("./second_run_without_cache.xls")
+    workbook.save("./run.xls")

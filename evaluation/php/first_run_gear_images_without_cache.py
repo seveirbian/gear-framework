@@ -16,7 +16,7 @@ from elasticsearch import Elasticsearch
 auto = False
 
 private_registry = "202.114.10.146:9999/"
-suffix = "-gearmd"
+suffix = "-gear"
 
 apppath = ""
 
@@ -27,13 +27,13 @@ pwd = os.getcwd()
 
 runEnvironment = []
 runPorts = {"11211/tcp": hostPort,}
-runVolumes = {os.path.join(pwd, "hello.rb"): {'bind': '/hello.rb', 'mode': 'rw'},}
+runVolumes = {os.path.join(pwd, "hello.php"): {'bind': '/hello.php', 'mode': 'rw'},}
 runWorking_dir = ""
-runCommand = "ruby /hello.rb"
+runCommand = "php /hello.php"
 waitline = "hello"
 
 # result
-result = [["tag", "finishTime", "local data", "pull data"], ]
+result = [["tag", "finishTime", "local data", "pull data", "file_num"], ]
 
 class Runner:
 
@@ -105,8 +105,19 @@ class Runner:
                 except:
                     print "kill fail!"
                     pass
-                    
+
                 container.remove(force=True)
+                # cmd = '%s kill %s' % ("docker", runName)
+                # rc = os.system(cmd)
+                # assert(rc == 0)
+
+                file_num = 0
+                private_path = os.path.join("/var/lib/gear/private", private_repo)
+                for root, dirs, files in os.walk(private_path):
+                    for each in files:
+                        file_num += 1
+
+                print "file numbers: ", file_num
 
                 # delete files under /var/lib/gear/public/
                 shutil.rmtree('/var/lib/gear/public/')
@@ -115,7 +126,7 @@ class Runner:
                 print "empty cache! \n"
 
                 # record the image and its Running time
-                result.append([tag, finishTime, local_data, pull_data])
+                result.append([tag, finishTime, local_data, pull_data, file_num])
 
                 if auto != True: 
                     raw_input("Next?")
@@ -172,4 +183,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save("./second_run_without_cache.xls")
+    workbook.save("./first_run_without_cache.xls")

@@ -27,9 +27,9 @@ pwd = os.getcwd()
 
 runEnvironment = []
 runPorts = {"11211/tcp": hostPort,}
-runVolumes = {os.path.join(pwd, "hello.rb"): {'bind': '/hello.rb', 'mode': 'rw'},}
+runVolumes = {os.path.join(pwd, "hello.php"): {'bind': '/hello.php', 'mode': 'rw'},}
 runWorking_dir = ""
-runCommand = "ruby /hello.rb"
+runCommand = "php /hello.php"
 waitline = "hello"
 
 # result
@@ -100,6 +100,8 @@ class Runner:
 
                 print "pull data: ", pull_data
 
+                print "\n"
+
                 try: 
                     container.kill()
                 except:
@@ -107,12 +109,6 @@ class Runner:
                     pass
                     
                 container.remove(force=True)
-
-                # delete files under /var/lib/gear/public/
-                shutil.rmtree('/var/lib/gear/public/')
-                os.mkdir('/var/lib/gear/public/')
-
-                print "empty cache! \n"
 
                 # record the image and its Running time
                 result.append([tag, finishTime, local_data, pull_data])
@@ -172,4 +168,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save("./second_run_without_cache.xls")
+    workbook.save("./second_run.xls")

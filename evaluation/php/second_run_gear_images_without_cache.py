@@ -27,9 +27,9 @@ pwd = os.getcwd()
 
 runEnvironment = []
 runPorts = {"11211/tcp": hostPort,}
-runVolumes = {os.path.join(pwd, "hello.rb"): {'bind': '/hello.rb', 'mode': 'rw'},}
+runVolumes = {os.path.join(pwd, "hello.php"): {'bind': '/hello.php', 'mode': 'rw'},}
 runWorking_dir = ""
-runCommand = "ruby /hello.rb"
+runCommand = "php /hello.php"
 waitline = "hello"
 
 # result
