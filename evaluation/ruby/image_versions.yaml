@@ -1,7 +1,7 @@
 ---
 - repo:
-  - elasticsearch
-- elasticsearch:
+  - ruby
+- ruby:
   - "2.5.0-preview1-stretch"
   - "2.5.0-rc1-stretch"
   - "2.5.0-stretch"
