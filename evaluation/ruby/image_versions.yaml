@@ -1,0 +1,24 @@
+---
+- repo:
+  - elasticsearch
+- elasticsearch:
+  - "2.5.0-preview1-stretch"
+  - "2.5.0-rc1-stretch"
+  - "2.5.0-stretch"
+  - "2.5.1-stretch"
+  - "2.5.3-stretch"
+  - "2.5.4-stretch"
+  - "2.5.5-stretch"
+  - "2.6-rc-stretch"
+  - "2.6-stretch"
+  - "2.6.0-preview1-stretch"
+  - "2.6.0-preview2-stretch"
+  - "2.6.0-preview3-stretch"
+  - "2.6.0-rc1-stretch"
+  - "2.6.0-rc2-stretch"
+  - "2.6.0-stretch"
+  - "2.6.1-stretch"
+  - "2.6.2-stretch"
+  - "2.6.3-stretch"
+  - "2.7-rc-stretch"
+  - "2.7.0-preview1-stretch"
