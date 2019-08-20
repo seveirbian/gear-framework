@@ -5,7 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/bzip2"
-	gzip "github.com/klauspost/pgzip"
+	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
