@@ -15,14 +15,13 @@ client = docker.from_env()
 
 def empty_cache():
     # docker system prune -a
-    try:
-        client.containers.prune()
-    except:
-        print "fail to prune containers!"
-    try:
-        client.images.prune()
-    except:
-        print "fail to prune images!"
+    p = subprocess.Popen("docker system prune -a", shell=True, 
+                            stdout = subprocess.PIPE,
+                            stdin = subprocess.PIPE)
+    stdout, stderr = p.communicate("y\n")
+    ret_code = p.wait()
+    if ret_code != 0:
+        print "fail to empty cache"
     # empty cache
     shutil.rmtree('/var/lib/gear/public/')
     os.mkdir('/var/lib/gear/public/')
@@ -31,7 +30,9 @@ def empty_cache():
     print "empty cache! \n"
 
 def run_command(file):
-    p = subprocess.Popen("python "+file+" yes", shell=True, stdout=subprocess.STDOUT)
+    p = subprocess.Popen("python "+file+" yes", shell=True, 
+                            stdout = subprocess.PIPE,
+                            stdin = subprocess.PIPE)
     ret_code = p.wait()
     return ret_code
 
