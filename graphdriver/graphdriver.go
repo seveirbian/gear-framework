@@ -18,7 +18,7 @@ import (
 	"strings"
 	// "time"
 	"archive/tar"
-	"compress/gzip"
+	gzip "github.com/klauspost/pgzip"
 	"io/ioutil"
 	// "strconv"
 	"github.com/docker/docker/pkg/ioutils"
