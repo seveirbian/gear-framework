@@ -39,48 +39,70 @@ def run_command(file):
 def test_one_image(image):
     empty_cache()
 
+    print "pull docker images from docker hub"
     step1_file = os.path.join(pwd, image, "pull_docker_images_from_dockerhub.py")
     if run_command(step1_file) != 0:
         print "fail step 1"
+    print "push docker images to private registry"
     step2_file = os.path.join(pwd, image, "push_docker_images_to_private_registry.py")
     if run_command(step2_file) != 0:
         print "fail step 2"
+    print "push docker images to back registry"
     step3_file = os.path.join(pwd, image, "push_docker_images_to_back_registry.py")
     if run_command(step3_file) != 0:
         print "fail step 3"
 
     empty_cache()
 
+    print "pull docker images from private registry"
     step4_file = os.path.join(pwd, image, "pull_docker_images_from_private_registry.py")
     if run_command(step4_file) != 0:
         print "fail step 4"
+    print "run docker images"
     step5_file = os.path.join(pwd, image, "run_docker_images.py")
     if run_command(step5_file) != 0:
         print "fail step 5"
 
+    print "first pull gear images from private registry"
     step6_file = os.path.join(pwd, image, "first_pull_gear_images_from_private_registry.py")
     if run_command(step6_file) != 0:
         print "fail step 6"
+    print "first run gear images without cache"
     step7_file = os.path.join(pwd, image, "first_run_gear_images_without_cache.py")
     if run_command(step7_file) != 0:
         print "fail step 7"
 
     empty_cache()
 
+    print "first pull gear images from private registry"
     step8_file = os.path.join(pwd, image, "second_pull_gear_images_from_private_registry.py")
     if run_command(step8_file) != 0:
         print "fail step 8"
+    print "first run gear images with cache"
     step9_file = os.path.join(pwd, image, "second_run_gear_images_without_cache.py")
     if run_command(step9_file) != 0:
         print "fail step 9"
 
     empty_cache()
 
+    print "second pull gear images form private registry"
     step10_file = os.path.join(pwd, image, "second_pull_gear_images_from_private_registry.py")
     if run_command(step10_file) != 0:
         print "fail step 10"
+    print "second run gear images without cache"
     step11_file = os.path.join(pwd, image, "second_run_gear_images.py")
     if run_command(step11_file) != 0:
+        print "fail step 11"
+
+    empty_cache()
+
+    print "second pull gear images form private registry"
+    step12_file = os.path.join(pwd, image, "second_pull_gear_images_from_private_registry.py")
+    if run_command(step12_file) != 0:
+        print "fail step 10"
+    print "second run gear images with cache"
+    step13_file = os.path.join(pwd, image, "second_run_gear_images.py")
+    if run_command(step13_file) != 0:
         print "fail step 11"
 
 class Generator:
