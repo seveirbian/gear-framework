@@ -194,4 +194,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save("./first_run_without_cache.xls")
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/first_run_without_cache.xls")

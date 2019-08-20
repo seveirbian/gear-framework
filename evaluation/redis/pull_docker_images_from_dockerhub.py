@@ -42,17 +42,10 @@ class Puller:
                     # get image's size
                     size = image_pulled.attrs[u'Size'] / 1000000.0
 
-                    # record the image and its pulling time
-                    self.record(repo, tag, finishTime, size)
-
                 except docker.errors.NotFound:
                     print repo + " not found...\n\n"
                 except docker.errors.ImageNotFound:
                     print repo + " image not fount...\n\n"
-
-    def record(self, repo, tag, time, size):
-        with open("./images_pulled.txt", "a") as f:
-            f.write("repo: "+str(repo)+" tag: "+str(tag)+" time: "+str(time)+" size: "+str(size)+"\n")
 
 class Generator:
     

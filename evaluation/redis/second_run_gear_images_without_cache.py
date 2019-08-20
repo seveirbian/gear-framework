@@ -2,13 +2,16 @@ import sys
 # package need to be installed, pip install docker
 import docker 
 import time
-import random
 import yaml
 import os
+import random
 import subprocess
 import signal
 import urllib2
 import shutil
+import xlwt
+# package need to be installed, pip install elasticsearch
+from elasticsearch import Elasticsearch
 
 auto = False
 
@@ -18,14 +21,19 @@ suffix = "-gearmd"
 apppath = ""
 
 # run paraments
-hostPort = 8080
+hostPort = 6379
+localVolume = ""
+pwd = os.getcwd()
+
 runEnvironment = []
-runPorts = {"8080/tcp": hostPort,}
+runPorts = {"6379/tcp": 6379, }
 runVolumes = {}
 runWorking_dir = ""
 runCommand = ""
+waitline = ""
 
-
+# result
+result = [["tag", "finishTime", "local data", "pull data"], ]
 
 class Runner:
 
@@ -49,6 +57,10 @@ class Runner:
             for tag in tags:
                 private_repo = private_registry + repo + suffix + ":" + tag
 
+                if localVolume != "":
+                    if os.path.exists(localVolume) == False:
+                        os.makedirs(localVolume)
+
                 print "start running: ", private_repo
 
                 # create a random name
@@ -61,15 +73,9 @@ class Runner:
                 cnetdata = get_net_data()
 
                 # run images
-                try:
-                    container = client.containers.create(image=private_repo, environment=runEnvironment,
-                                        ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
-                                        command=runCommand, name=runName, detach=True)
-
-                except docker.errors.NotFound:
-                    print private_repo + " not found...\n\n"
-                except docker.errors.ImageNotFound:
-                    print private_repo + " image not fount...\n\n"
+                container = client.containers.create(image=private_repo, environment=runEnvironment,
+                                    ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
+                                    command=runCommand, name=runName, detach=True)
 
                 container.start()
 
@@ -78,12 +84,20 @@ class Runner:
                         break
 
                     try:
-                        ans = container.logs().find("Ready to accept connections")
-                        if ans >= 0:
-                            print "OK!"
+                        r = redis.Redis(host='localhost', port=hostPort, decode_responses=True)
+                        print "successfully open db!"
+                        if r.set("game", "three kingdoms") != True:
                             break
+                        print "successfully insert!"
+                        if r.set("game", "dota2") != True:
+                            break
+                        print "successfully update!"
+                        print r.get("game")
+                        print "successfully delete!"
+                        db.close()
+                        break
                     except:
-                        time.sleep(0.01) # wait 10ms
+                        time.sleep(0.1) # wait 100ms
                         pass
 
                 # print run time
@@ -91,7 +105,14 @@ class Runner:
 
                 print "finished in " , finishTime, "s"
 
-                print "pull data: ", get_net_data() - cnetdata
+                container_path = os.path.join("/var/lib/gear/private", private_repo)
+                local_data = subprocess.check_output(['du','-sh', container_path]).split()[0].decode('utf-8')
+
+                print "local data: ", local_data
+
+                pull_data = get_net_data() - cnetdata
+
+                print "pull data: ", pull_data
 
                 try: 
                     container.kill()
@@ -108,17 +129,15 @@ class Runner:
                 print "empty cache! \n"
 
                 # record the image and its Running time
-                self.record(private_repo, tag, finishTime)
+                result.append([tag, finishTime, local_data, pull_data])
 
                 if auto != True: 
                     raw_input("Next?")
                 else:
                     time.sleep(5)
 
-
-    def record(self, repo, tag, time):
-        with open("./images_run.txt", "a") as f:
-            f.write("repo: "+str(repo)+" tag: "+str(tag)+" time: "+str(time)+"\n")
+                if localVolume != "":
+                    shutil.rmtree(localVolume)
 
 class Generator:
     
@@ -158,3 +177,13 @@ if __name__ == "__main__":
     runner = Runner(images)
 
     runner.run()
+
+    # create a workbook sheet
+    workbook = xlwt.Workbook()
+    sheet = workbook.add_sheet("run_time")
+
+    for row in range(len(result)):
+        for column in range(len(result[row])):
+            sheet.write(row, column, result[row][column])
+
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/second_run_without_cache.xls")
