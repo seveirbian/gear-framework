@@ -8,6 +8,7 @@ import random
 import subprocess
 import signal
 import shutil
+import urllib2
 
 pwd = os.getcwd()
 
@@ -36,6 +37,26 @@ def run_command(file):
     ret_code = p.wait()
     return ret_code
 
+def check_ready(image):
+    req = urllib2.urlopen("http://202.114.10.146:9999/v2/"+image+"-gear/tags/list")
+    image_info = req.read().split("\"tags\":[")
+    image_info = image_info[1].split("]}\n")
+    image_info = image_info[0]
+    image_info = image_info.split(",")
+    image_num = len(image_info)
+    if image_num != 20:
+        return False
+
+def check_ready(image):
+    req = urllib2.urlopen("http://202.114.10.146:9999/v2/"+image+"-gearmd/tags/list")
+    image_info = req.read().split("\"tags\":[")
+    image_info = image_info[1].split("]}\n")
+    image_info = image_info[0]
+    image_info = image_info.split(",")
+    image_num = len(image_info)
+    if image_num != 20:
+        return False
+
 def test_one_image(image):
     empty_cache()
 
@@ -63,6 +84,9 @@ def test_one_image(image):
     if run_command(step5_file) != 0:
         print "fail step 5"
 
+    while check_gear_ready(image) != True:
+        continue
+
     print "first pull gear images from private registry"
     step6_file = os.path.join(pwd, image, "first_pull_gear_images_from_private_registry.py")
     if run_command(step6_file) != 0:
@@ -85,6 +109,9 @@ def test_one_image(image):
 
     empty_cache()
 
+    while check_gearmd_ready(image) != True:
+        continue
+
     print "second pull gear images form private registry"
     step10_file = os.path.join(pwd, image, "second_pull_gear_images_from_private_registry.py")
     if run_command(step10_file) != 0:
@@ -99,11 +126,11 @@ def test_one_image(image):
     print "second pull gear images form private registry"
     step12_file = os.path.join(pwd, image, "second_pull_gear_images_from_private_registry.py")
     if run_command(step12_file) != 0:
-        print "fail step 10"
+        print "fail step 12"
     print "second run gear images with cache"
     step13_file = os.path.join(pwd, image, "second_run_gear_images.py")
     if run_command(step13_file) != 0:
-        print "fail step 11"
+        print "fail step 13"
 
 class Generator:
     

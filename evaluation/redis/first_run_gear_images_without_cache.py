@@ -10,8 +10,8 @@ import signal
 import urllib2
 import shutil
 import xlwt
-# package need to be installed, pip install elasticsearch
-from elasticsearch import Elasticsearch
+# package need to be installed, apt-get install python-redis
+import redis
 
 auto = False
 
