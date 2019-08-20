@@ -94,7 +94,6 @@ class Runner:
                         print "successfully update!"
                         print r.get("game")
                         print "successfully delete!"
-                        db.close()
                         break
                     except:
                         time.sleep(0.1) # wait 100ms
