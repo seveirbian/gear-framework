@@ -10,6 +10,8 @@ import signal
 import shutil
 import urllib2
 
+test_pull = False
+
 pwd = os.getcwd()
 
 client = docker.from_env()
@@ -58,20 +60,21 @@ def check_gearmd_ready(image):
         return False
 
 def test_one_image(image):
-    empty_cache()
+    if test_pull == True:
+        empty_cache()
 
-    print "pull docker images from docker hub"
-    step1_file = os.path.join(pwd, image, "pull_docker_images_from_dockerhub.py")
-    if run_command(step1_file) != 0:
-        print "fail step 1"
-    print "push docker images to private registry"
-    step2_file = os.path.join(pwd, image, "push_docker_images_to_private_registry.py")
-    if run_command(step2_file) != 0:
-        print "fail step 2"
-    print "push docker images to back registry"
-    step3_file = os.path.join(pwd, image, "push_docker_images_to_back_registry.py")
-    if run_command(step3_file) != 0:
-        print "fail step 3"
+        print "pull docker images from docker hub"
+        step1_file = os.path.join(pwd, image, "pull_docker_images_from_dockerhub.py")
+        if run_command(step1_file) != 0:
+            print "fail step 1"
+        print "push docker images to private registry"
+        step2_file = os.path.join(pwd, image, "push_docker_images_to_private_registry.py")
+        if run_command(step2_file) != 0:
+            print "fail step 2"
+        print "push docker images to back registry"
+        step3_file = os.path.join(pwd, image, "push_docker_images_to_back_registry.py")
+        if run_command(step3_file) != 0:
+            print "fail step 3"
 
     empty_cache()
 
@@ -166,7 +169,7 @@ class Generator:
 if __name__ == "__main__":
 
     if len(sys.argv) == 2:
-        auto = True
+        test_pull = True
 
     generator = Generator(os.path.split(os.path.realpath(__file__))[0]+"/images.yaml")
 
