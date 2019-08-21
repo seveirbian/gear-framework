@@ -92,6 +92,7 @@ def test_one_image(image):
     # make gear images
     empty_cache()
 
+    print "check gear images"
     while check_gear_ready(image) != True:
         continue
 
@@ -131,6 +132,8 @@ def test_one_image(image):
         print "fail step 9"
 
     empty_cache()
+
+    print "check gearmd images"
 
     while check_gearmd_ready(image) != True:
         continue
