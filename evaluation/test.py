@@ -102,6 +102,8 @@ def test_one_image(image):
         print "fail run gear images"
     # 
 
+    empty_cache()
+
     while check_gear_ready(image) != True:
         continue
 
