@@ -48,6 +48,7 @@ def check_gear_ready(image):
     image_num = len(image_info)
     if image_num != 20:
         return False
+    return True
 
 def check_gearmd_ready(image):
     req = urllib2.urlopen("http://202.114.10.146:9999/v2/"+image+"-gearmd/tags/list")
@@ -58,6 +59,7 @@ def check_gearmd_ready(image):
     image_num = len(image_info)
     if image_num != 20:
         return False
+    return True
 
 def test_one_image(image):
     if test_pull == True:
