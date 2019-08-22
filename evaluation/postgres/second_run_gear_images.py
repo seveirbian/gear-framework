@@ -8,6 +8,7 @@ import random
 import subprocess
 import signal
 import urllib2
+import xlwt
 # package need to be installed, apt-get install python-psycopg2
 import psycopg2
 import shutil
