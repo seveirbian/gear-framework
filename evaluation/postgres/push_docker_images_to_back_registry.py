@@ -9,7 +9,7 @@ class Pusher:
 
     def __init__(self, images):
         self.images_to_push = images
-        self.private_registry = "202.114.10.146:9999"
+        self.private_registry = "202.114.10.146:10000"
 
     def check(self):
         # detect whether the file exists, if true, delete it

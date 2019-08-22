@@ -1,8 +1,8 @@
 ---
 - images:
   # - "couchbase"
-  - "redis"
-  # - "postgres"
+  # - "redis"
+  - "postgres"
   # - "nginx"
   # - "mongo"
   # - "ubuntu"

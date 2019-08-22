@@ -21,6 +21,7 @@ apppath = ""
 # run paraments
 hostPort = 5432
 localVolume = "/var/lib/gear/volume"
+pwd = os.getcwd()
 
 runEnvironment = ["POSTGRES_USER=bian", 
                   "POSTGRES_PASSWORD=1122", 
@@ -31,6 +32,8 @@ runWorking_dir = ""
 runCommand = ""
 waitline = "ready to accept connections"
 
+# result
+result = [["tag", "finishTime"], ]
 
 class Runner:
 
@@ -54,8 +57,9 @@ class Runner:
             for tag in tags:
                 private_repo = private_registry + repo + ":" + tag
 
-                if os.path.exists(localVolume) == False:
-                    os.makedirs(localVolume)
+                if localVolume != "":
+                    if os.path.exists(localVolume) == False:
+                        os.makedirs(localVolume)
 
                 print "start running: ", private_repo
 
@@ -66,15 +70,9 @@ class Runner:
                 startTime = time.time()
 
                 # run images
-                try:
-                    container = client.containers.create(image=private_repo, environment=runEnvironment,
-                                        ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
-                                        command=runCommand, name=runName, detach=True)
-
-                except docker.errors.APIError:
-                    print private_repo + " api error...\n\n"
-                except docker.errors.ImageNotFound:
-                    print private_repo + " image not fount...\n\n"
+                container = client.containers.create(image=private_repo, environment=runEnvironment,
+                                    ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
+                                    command=runCommand, name=runName, detach=True)
 
                 container.start()
 
@@ -116,7 +114,7 @@ class Runner:
                     except:
                         time.sleep(0.01) # wait 10ms
                         pass
-
+                        
                 # print run time
                 finishTime = time.time() - startTime
 
@@ -131,18 +129,15 @@ class Runner:
                 container.remove(force=True)
 
                 # record the image and its Running time
-                self.record(private_repo, tag, finishTime)
+                result.append([tag, finishTime])
 
                 if auto != True: 
                     raw_input("Next?")
                 else:
                     time.sleep(5)
 
-                shutil.rmtree(localVolume)
-
-    def record(self, repo, tag, time):
-        with open("./images_run.txt", "a") as f:
-            f.write("repo: "+str(repo)+" tag: "+str(tag)+" time: "+str(time)+"\n")
+                if localVolume != "":
+                    shutil.rmtree(localVolume)
 
 class Generator:
     
@@ -183,3 +178,13 @@ if __name__ == "__main__":
     runner = Runner(images)
 
     runner.run()
+
+    # create a workbook sheet
+    workbook = xlwt.Workbook()
+    sheet = workbook.add_sheet("run_time")
+
+    for row in range(len(result)):
+        for column in range(len(result[row])):
+            sheet.write(row, column, result[row][column])
+
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/run.xls")
