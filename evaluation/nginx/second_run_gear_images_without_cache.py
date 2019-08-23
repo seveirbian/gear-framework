@@ -2,14 +2,16 @@ import sys
 # package need to be installed, pip install docker
 import docker 
 import time
-import random
 import yaml
 import os
+import random
 import subprocess
 import signal
 import urllib2
 import shutil
-import psycopg2
+import xlwt
+# package need to be installed, apt-get install python-redis
+import redis
 
 auto = False
 
@@ -21,15 +23,17 @@ apppath = ""
 # run paraments
 hostPort = 8080
 localVolume = ""
+pwd = os.getcwd()
 
 runEnvironment = []
-runPorts = {"80/tcp": hostPort,}
+runPorts = {"80/tcp": hostPort, }
 runVolumes = {}
 runWorking_dir = ""
 runCommand = ""
 waitline = ""
 
-
+# result
+result = [["tag", "finishTime", "local data", "pull data"], ]
 
 class Runner:
 
@@ -69,26 +73,11 @@ class Runner:
                 cnetdata = get_net_data()
 
                 # run images
-                try:
-                    container = client.containers.create(image=private_repo, environment=runEnvironment,
-                                        ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
-                                        command=runCommand, name=runName, detach=True)
-
-                except docker.errors.NotFound:
-                    print private_repo + " not found...\n\n"
-                except docker.errors.ImageNotFound:
-                    print private_repo + " image not fount...\n\n"
+                container = client.containers.create(image=private_repo, environment=runEnvironment,
+                                    ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
+                                    command=runCommand, name=runName, detach=True)
 
                 container.start()
-
-                while True:
-                    if waitline == "":
-                        break
-                    elif container.logs().find(waitline) >= 0:
-                        break
-                    else:
-                        time.sleep(0.01)
-                        pass
 
                 while True:
                     if time.time() - startTime > 600:
@@ -109,7 +98,14 @@ class Runner:
 
                 print "finished in " , finishTime, "s"
 
-                print "pull data: ", get_net_data() - cnetdata
+                container_path = os.path.join("/var/lib/gear/private", private_repo)
+                local_data = subprocess.check_output(['du','-sh', container_path]).split()[0].decode('utf-8')
+
+                print "local data: ", local_data
+
+                pull_data = get_net_data() - cnetdata
+
+                print "pull data: ", pull_data
 
                 try: 
                     container.kill()
@@ -126,7 +122,7 @@ class Runner:
                 print "empty cache! \n"
 
                 # record the image and its Running time
-                self.record(private_repo, tag, finishTime)
+                result.append([tag, finishTime, local_data, pull_data])
 
                 if auto != True: 
                     raw_input("Next?")
@@ -135,11 +131,6 @@ class Runner:
 
                 if localVolume != "":
                     shutil.rmtree(localVolume)
-
-
-    def record(self, repo, tag, time):
-        with open("./images_run.txt", "a") as f:
-            f.write("repo: "+str(repo)+" tag: "+str(tag)+" time: "+str(time)+"\n")
 
 class Generator:
     
@@ -179,3 +170,13 @@ if __name__ == "__main__":
     runner = Runner(images)
 
     runner.run()
+
+    # create a workbook sheet
+    workbook = xlwt.Workbook()
+    sheet = workbook.add_sheet("run_time")
+
+    for row in range(len(result)):
+        for column in range(len(result[row])):
+            sheet.write(row, column, result[row][column])
+
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/second_run_without_cache.xls")
