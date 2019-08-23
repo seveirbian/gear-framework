@@ -10,8 +10,8 @@ import signal
 import urllib2
 import shutil
 import xlwt
-# package need to be installed, apt-get install python-redis
-import redis
+# package need to be installed, apt-get install python-pymongo
+import pymongo
 
 auto = False
 
@@ -87,7 +87,7 @@ class Runner:
                     elif container.logs().find(waitline) >= 0:
                         break
                     else:
-                        time.sleep(0.01)
+                        time.sleep(0.1)
                         pass
 
                 while True:
