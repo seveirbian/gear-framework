@@ -4,11 +4,15 @@ import docker
 import time
 import yaml
 import os
+import xlwt
 
 auto = False
 
 private_registry = "202.114.10.146:9999/"
 suffix = "-gearmd"
+
+# result
+result = [["tag", "finishTime", "data"], ]
 
 class Puller:
 
@@ -35,6 +39,9 @@ class Puller:
                 # get present time
                 startTime = time.time()
 
+                # get present net data
+                cnetdata = get_net_data()
+
                 # pull images
                 try:
                     image_pulled = client.images.pull(repository=private_registry+repo+suffix, tag=str(tag))
@@ -42,13 +49,20 @@ class Puller:
                     # print pull time
                     finishTime = time.time() - startTime
 
-                    print "finished in " , finishTime, "s\n"
+                    print "finished in " , finishTime, "s"
 
                     # get image's size
                     size = image_pulled.attrs[u'Size'] / 1000000.0
+                    print "image size: ", size
+
+                    data = get_net_data() - cnetdata
+
+                    print "pull data: ", data
+
+                    print "\n"
 
                     # record the image and its pulling time
-                    self.record(private_registry+repo+suffix, tag, finishTime, size)
+                    result.append([tag, finishTime, data])
 
                 except docker.errors.NotFound:
                     print private_registry+repo+suffix + " not found...\n\n"
@@ -57,10 +71,6 @@ class Puller:
 
                 if auto != True: 
                     raw_input("Next?")
-
-    def record(self, repo, tag, time, size):
-        with open("./images_pulled.txt", "a") as f:
-            f.write("repo: "+str(repo)+" tag: "+str(tag)+" time: "+str(time)+" size: "+str(size)+"\n")
 
 class Generator:
     
@@ -76,6 +86,17 @@ class Generator:
 
         return self.images
 
+def get_net_data():
+    netCard = "/proc/net/dev"
+    fd = open(netCard, "r")
+
+    for line in fd.readlines():
+        if line.find("enp0s3") >= 0:
+            field = line.split()
+            data = float(field[1]) / 1024.0 / 1024.0
+
+    fd.close()
+    return data
 
 if __name__ == "__main__":
 
@@ -89,3 +110,13 @@ if __name__ == "__main__":
     puller = Puller(images)
 
     puller.pull()
+
+    # create a workbook sheet
+    workbook = xlwt.Workbook()
+    sheet = workbook.add_sheet("run_time")
+
+    for row in range(len(result)):
+        for column in range(len(result[row])):
+            sheet.write(row, column, result[row][column])
+
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/second_pull.xls")

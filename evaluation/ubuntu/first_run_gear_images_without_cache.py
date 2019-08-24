@@ -35,7 +35,7 @@ runCommand = "echo hello"
 waitline = "hello"
 
 # result
-result = [["tag", "finishTime", "local data", "pull data"], ]
+result = [["tag", "finishTime", "local data", "pull data", "file_num"], ]
 
 class Runner:
 
@@ -104,8 +104,6 @@ class Runner:
 
                 print "pull data: ", pull_data
 
-                print "\n"
-
                 try: 
                     container.kill()
                 except:
@@ -117,8 +115,22 @@ class Runner:
                 # rc = os.system(cmd)
                 # assert(rc == 0)
 
+                file_num = 0
+                private_path = os.path.join("/var/lib/gear/private", private_repo)
+                for root, dirs, files in os.walk(private_path):
+                    for each in files:
+                        file_num += 1
+
+                print "file numbers: ", file_num
+
+                # delete files under /var/lib/gear/public/
+                shutil.rmtree('/var/lib/gear/public/')
+                os.mkdir('/var/lib/gear/public/')
+
+                print "empty cache! \n"
+
                 # record the image and its Running time
-                result.append([tag, finishTime, local_data, pull_data])
+                result.append([tag, finishTime, local_data, pull_data, file_num])
 
                 if auto != True: 
                     raw_input("Next?")
@@ -175,4 +187,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/first_run.xls")
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/first_run_without_cache.xls")

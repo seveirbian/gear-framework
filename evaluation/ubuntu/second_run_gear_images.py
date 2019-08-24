@@ -2,12 +2,16 @@ import sys
 # package need to be installed, pip install docker
 import docker 
 import time
-import random
 import yaml
 import os
+import random
 import subprocess
 import signal
 import urllib2
+import shutil
+import xlwt
+# package need to be installed, apt-get install python-pymongo
+import pymongo
 
 auto = False
 
@@ -17,15 +21,21 @@ suffix = "-gearmd"
 apppath = ""
 
 # run paraments
-hostPort = 8080
-runEnvironment = []
-runPorts = {}
-runVolumes = {}
+hostPort = 27017
+localVolume = "/var/lib/gear/volume"
+pwd = os.getcwd()
+
+runEnvironment = ["MONGO_INITDB_ROOT_USERNAME=bian", 
+                  "MONGO_INITDB_ROOT_PASSWORD=1122", 
+                  "MONGO_INITDB_DATABASE=games", ]
+runPorts = {"27017/tcp": hostPort, }
+runVolumes = {localVolume: {'bind': '/data/db', 'mode': 'rw'},}
 runWorking_dir = ""
 runCommand = "echo hello"
-runWaitLine = "hello"
+waitline = "hello"
 
-
+# result
+result = [["tag", "finishTime", "local data", "pull data"], ]
 
 class Runner:
 
@@ -49,6 +59,10 @@ class Runner:
             for tag in tags:
                 private_repo = private_registry + repo + suffix + ":" + tag
 
+                if localVolume != "":
+                    if os.path.exists(localVolume) == False:
+                        os.makedirs(localVolume)
+
                 print "start running: ", private_repo
 
                 # create a random name
@@ -57,34 +71,40 @@ class Runner:
                 # get present time
                 startTime = time.time()
 
-                # run images
-                try:
-                    container = client.containers.create(image=private_repo, environment=runEnvironment,
-                                        ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
-                                        command=runCommand, name=runName, detach=True)
+                # get present net data
+                cnetdata = get_net_data()
 
-                except docker.errors.NotFound:
-                    print private_repo + " not found...\n\n"
-                except docker.errors.ImageNotFound:
-                    print private_repo + " image not fount...\n\n"
+                # run images
+                container = client.containers.create(image=private_repo, environment=runEnvironment,
+                                    ports=runPorts, volumes=runVolumes, working_dir=runWorking_dir,
+                                    command=runCommand, name=runName, detach=True)
 
                 container.start()
 
                 while True:
-                    if time.time() - startTime > 600:
+                    if waitline == "":
                         break
-
-                    try:
-                        container.logs().find(runWaitLine) >= 0
+                    elif container.logs().find(waitline) >= 0:
                         break
-                    except:
-                        time.sleep(0.01) # wait 10ms
+                    else:
+                        time.sleep(0.1)
                         pass
 
                 # print run time
                 finishTime = time.time() - startTime
 
-                print "finished in " , finishTime, "s\n"
+                print "finished in " , finishTime, "s"
+
+                container_path = os.path.join("/var/lib/gear/private", private_repo)
+                local_data = subprocess.check_output(['du','-sh', container_path]).split()[0].decode('utf-8')
+
+                print "local data: ", local_data
+
+                pull_data = get_net_data() - cnetdata
+
+                print "pull data: ", pull_data
+
+                print "\n"
 
                 try: 
                     container.kill()
@@ -95,17 +115,15 @@ class Runner:
                 container.remove(force=True)
 
                 # record the image and its Running time
-                self.record(private_repo, tag, finishTime)
+                result.append([tag, finishTime, local_data, pull_data])
 
                 if auto != True: 
                     raw_input("Next?")
                 else:
                     time.sleep(5)
 
-
-    def record(self, repo, tag, time):
-        with open("./images_run.txt", "a") as f:
-            f.write("repo: "+str(repo)+" tag: "+str(tag)+" time: "+str(time)+"\n")
+                if localVolume != "":
+                    shutil.rmtree(localVolume)
 
 class Generator:
     
@@ -121,6 +139,17 @@ class Generator:
 
         return self.images
 
+def get_net_data():
+    netCard = "/proc/net/dev"
+    fd = open(netCard, "r")
+
+    for line in fd.readlines():
+        if line.find("enp0s3") >= 0:
+            field = line.split()
+            data = float(field[1]) / 1024.0 / 1024.0
+
+    fd.close()
+    return data
 
 if __name__ == "__main__":
 
@@ -134,3 +163,13 @@ if __name__ == "__main__":
     runner = Runner(images)
 
     runner.run()
+
+    # create a workbook sheet
+    workbook = xlwt.Workbook()
+    sheet = workbook.add_sheet("run_time")
+
+    for row in range(len(result)):
+        for column in range(len(result[row])):
+            sheet.write(row, column, result[row][column])
+
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/second_run.xls")
