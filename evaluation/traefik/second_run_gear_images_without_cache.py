@@ -2,14 +2,15 @@ import sys
 # package need to be installed, pip install docker
 import docker 
 import time
-import random
 import yaml
 import os
+import random
 import subprocess
 import signal
 import urllib2
 import shutil
-import psycopg2
+import xlwt
+# package need to be installed, apt-get install python-pymongo
 import pymongo
 
 auto = False
@@ -22,9 +23,11 @@ apppath = ""
 # run paraments
 hostPort = 8080
 localVolume = "/var/lib/gear/volume"
-pwd = os.getcwd()
+pwd = os.path.split(os.path.realpath(__file__))[0]
 
-runEnvironment = []
+runEnvironment = ["MONGO_INITDB_ROOT_USERNAME=bian", 
+                  "MONGO_INITDB_ROOT_PASSWORD=1122", 
+                  "MONGO_INITDB_DATABASE=games", ]
 runPorts = {"8080/tcp": hostPort, "80/tcp": 80,}
 runVolumes = {os.path.join(pwd, "traefik.toml"): {'bind': '/etc/traefik/traefik.toml', 'mode': 'rw'}, 
               "/var/run/docker.sock": {'bind': '/var/run/docker.sock', 'mode': 'rw'}, }
@@ -32,7 +35,8 @@ runWorking_dir = ""
 runCommand = ""
 waitline = ""
 
-
+# result
+result = [["tag", "finishTime", "local data", "pull data"], ]
 
 class Runner:
 
@@ -56,8 +60,9 @@ class Runner:
             for tag in tags:
                 private_repo = private_registry + repo + suffix + ":" + tag
 
-                if os.path.exists(localVolume) == False:
-                    os.makedirs(localVolume)
+                if localVolume != "":
+                    if os.path.exists(localVolume) == False:
+                        os.makedirs(localVolume)
 
                 print "start running: ", private_repo
 
@@ -78,10 +83,12 @@ class Runner:
                 container.start()
 
                 while True:
-                    if container.logs().find(waitline) >= 0:
+                    if waitline == "":
+                        break
+                    elif container.logs().find(waitline) >= 0:
                         break
                     else:
-                        time.sleep(0.01)
+                        time.sleep(0.1)
                         pass
 
                 while True:
@@ -95,7 +102,7 @@ class Runner:
                         req.close()
                         break
                     except:
-                        time.sleep(0.01) # wait 10ms
+                        time.sleep(0.1) # wait 10ms
                         pass
 
                 # print run time
@@ -103,7 +110,14 @@ class Runner:
 
                 print "finished in " , finishTime, "s"
 
-                print "pull data: ", get_net_data() - cnetdata
+                container_path = os.path.join("/var/lib/gear/private", private_repo)
+                local_data = subprocess.check_output(['du','-sh', container_path]).split()[0].decode('utf-8')
+
+                print "local data: ", local_data
+
+                pull_data = get_net_data() - cnetdata
+
+                print "pull data: ", pull_data
 
                 try: 
                     container.kill()
@@ -120,19 +134,15 @@ class Runner:
                 print "empty cache! \n"
 
                 # record the image and its Running time
-                self.record(private_repo, tag, finishTime)
+                result.append([tag, finishTime, local_data, pull_data])
 
                 if auto != True: 
                     raw_input("Next?")
                 else:
                     time.sleep(5)
 
-                shutil.rmtree(localVolume)
-
-
-    def record(self, repo, tag, time):
-        with open("./images_run.txt", "a") as f:
-            f.write("repo: "+str(repo)+" tag: "+str(tag)+" time: "+str(time)+"\n")
+                if localVolume != "":
+                    shutil.rmtree(localVolume)
 
 class Generator:
     
@@ -172,3 +182,13 @@ if __name__ == "__main__":
     runner = Runner(images)
 
     runner.run()
+
+    # create a workbook sheet
+    workbook = xlwt.Workbook()
+    sheet = workbook.add_sheet("run_time")
+
+    for row in range(len(result)):
+        for column in range(len(result[row])):
+            sheet.write(row, column, result[row][column])
+
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/second_run_without_cache.xls")

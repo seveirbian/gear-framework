@@ -8,9 +8,10 @@ import random
 import subprocess
 import signal
 import urllib2
+import shutil
+import xlwt
 # package need to be installed, apt-get install python-pymongo
 import pymongo
-import shutil
 
 auto = False
 
@@ -21,9 +22,11 @@ apppath = ""
 # run paraments
 hostPort = 8080
 localVolume = "/var/lib/gear/volume"
-pwd = os.getcwd()
+pwd = os.path.split(os.path.realpath(__file__))[0]
 
-runEnvironment = []
+runEnvironment = ["MONGO_INITDB_ROOT_USERNAME=bian", 
+                  "MONGO_INITDB_ROOT_PASSWORD=1122", 
+                  "MONGO_INITDB_DATABASE=games", ]
 runPorts = {"8080/tcp": hostPort, "80/tcp": 80,}
 runVolumes = {os.path.join(pwd, "traefik.toml"): {'bind': '/etc/traefik/traefik.toml', 'mode': 'rw'}, 
               "/var/run/docker.sock": {'bind': '/var/run/docker.sock', 'mode': 'rw'}, }
@@ -31,6 +34,8 @@ runWorking_dir = ""
 runCommand = ""
 waitline = ""
 
+# result
+result = [["tag", "finishTime"], ]
 
 class Runner:
 
@@ -79,9 +84,9 @@ class Runner:
                     elif container.logs().find(waitline) >= 0:
                         break
                     else:
-                        time.sleep(0.01)
+                        time.sleep(0.1)
                         pass
-
+                        
                 while True:
                     if time.time() - startTime > 600:
                         break
@@ -93,7 +98,7 @@ class Runner:
                         req.close()
                         break
                     except:
-                        time.sleep(0.01) # wait 10ms
+                        time.sleep(0.1) # wait 10ms
                         pass
 
                 # print run time
@@ -110,7 +115,7 @@ class Runner:
                 container.remove(force=True)
 
                 # record the image and its Running time
-                self.record(private_repo, tag, finishTime)
+                result.append([tag, finishTime])
 
                 if auto != True: 
                     raw_input("Next?")
@@ -119,10 +124,6 @@ class Runner:
 
                 if localVolume != "":
                     shutil.rmtree(localVolume)
-
-    def record(self, repo, tag, time):
-        with open("./images_run.txt", "a") as f:
-            f.write("repo: "+str(repo)+" tag: "+str(tag)+" time: "+str(time)+"\n")
 
 class Generator:
     
@@ -163,3 +164,13 @@ if __name__ == "__main__":
     runner = Runner(images)
 
     runner.run()
+
+    # create a workbook sheet
+    workbook = xlwt.Workbook()
+    sheet = workbook.add_sheet("run_time")
+
+    for row in range(len(result)):
+        for column in range(len(result[row])):
+            sheet.write(row, column, result[row][column])
+
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/run.xls")
