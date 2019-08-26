@@ -7,11 +7,11 @@ import os
 import random
 import subprocess
 import signal
-import shutil
 import urllib2
-import psycopg2
-import pymongo
+import shutil
 import xlwt
+# package need to be installed, apt-get install python-pymongo
+import pymongo
 
 auto = False
 
@@ -23,7 +23,7 @@ apppath = ""
 # run paraments
 hostPort = 8080
 localVolume = "/var/lib/gear/volume"
-pwd = os.getcwd()
+pwd = os.path.split(os.path.realpath(__file__))[0]
 
 runEnvironment = []
 runPorts = {}
@@ -33,7 +33,7 @@ runCommand = "echo hello"
 waitline = "hello"
 
 # result
-result = [["tag", "finishTime", "data"], ]
+result = [["tag", "finishTime", "local data", "pull data", "file_num"], ]
 
 class Runner:
 
@@ -57,8 +57,9 @@ class Runner:
             for tag in tags:
                 private_repo = private_registry + repo + suffix + ":" + tag
 
-                if os.path.exists(localVolume) == False:
-                    os.makedirs(localVolume)
+                if localVolume != "":
+                    if os.path.exists(localVolume) == False:
+                        os.makedirs(localVolume)
 
                 print "start running: ", private_repo
 
@@ -79,13 +80,12 @@ class Runner:
                 container.start()
 
                 while True:
-                    if time.time() - startTime > 600:
+                    if waitline == "":
                         break
-
-                    if container.logs().find(waitline) >= 0:
+                    elif container.logs().find(waitline) >= 0:
                         break
                     else:
-                        time.sleep(0.1) # wait 100ms
+                        time.sleep(0.1)
                         pass
 
                 # print run time
@@ -93,9 +93,14 @@ class Runner:
 
                 print "finished in " , finishTime, "s"
 
-                data = get_net_data() - cnetdata
+                container_path = os.path.join("/var/lib/gear/private", private_repo)
+                local_data = subprocess.check_output(['du','-sh', container_path]).split()[0].decode('utf-8')
 
-                print "pull data: ", data
+                print "local data: ", local_data
+
+                pull_data = get_net_data() - cnetdata
+
+                print "pull data: ", pull_data
 
                 try: 
                     container.kill()
@@ -108,6 +113,14 @@ class Runner:
                 # rc = os.system(cmd)
                 # assert(rc == 0)
 
+                file_num = 0
+                private_path = os.path.join("/var/lib/gear/private", private_repo)
+                for root, dirs, files in os.walk(private_path):
+                    for each in files:
+                        file_num += 1
+
+                print "file numbers: ", file_num
+
                 # delete files under /var/lib/gear/public/
                 shutil.rmtree('/var/lib/gear/public/')
                 os.mkdir('/var/lib/gear/public/')
@@ -115,14 +128,15 @@ class Runner:
                 print "empty cache! \n"
 
                 # record the image and its Running time
-                result.append([tag, finishTime, data])
+                result.append([tag, finishTime, local_data, pull_data, file_num])
 
                 if auto != True: 
                     raw_input("Next?")
                 else:
                     time.sleep(5)
 
-                shutil.rmtree(localVolume)
+                if localVolume != "":
+                    shutil.rmtree(localVolume)
 
 class Generator:
     
@@ -171,4 +185,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save("./first_run_without_cache.xls")
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/first_run_without_cache.xls")
