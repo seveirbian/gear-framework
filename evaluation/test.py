@@ -94,7 +94,7 @@ def test_one_image(image):
 
     print "check gear images"
     while check_gear_ready(image) != True:
-        continue
+        time.sleep(0.1)
 
     print "make gearmd image..."
     print "first pull gear images from private registry"
@@ -136,7 +136,7 @@ def test_one_image(image):
     print "check gearmd images"
 
     while check_gearmd_ready(image) != True:
-        continue
+        time.sleep(0.1)
 
     # second run without cache
     print "second pull gear images form private registry"
