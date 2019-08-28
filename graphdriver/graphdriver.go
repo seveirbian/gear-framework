@@ -440,8 +440,10 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 					}
 				}(id)
 			} else {
-				if !strings.Contains(id, "-init") {
-					// 判断是否存在prefetched文件
+				// 判断是否存在prefetched文件
+				_, err = os.Lstat(filepath.Join(gearPath, "gear-diff", "prefetched"))
+				if err != nil {
+					// 从远程文件系统prefetch文件
 					files := []string{}
 					tamplate := map[string]string{}
 					dedup := map[string]bool{}
@@ -470,69 +472,66 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 					}
 					files = tmp
 
-					_, err = os.Lstat(filepath.Join(gearPath, "gear-diff", "prefetched"))
+					t := time.Now()
+
+					needToDownloadFiles := []string{}
+
+					for _, file := range files {
+						_, err := os.Lstat(filepath.Join(GearPublicCachePath, file))
+						if err != nil {
+							needToDownloadFiles = append(needToDownloadFiles, file)
+						}
+					}
+
+					v := url.Values{"files": needToDownloadFiles, "image": []string{gearImage}}
+
+					resp, err := http.PostForm("http://"+d.ManagerIp+":"+d.ManagerPort+"/prefetch", v)
 					if err != nil {
-						t := time.Now()
+						logger.Warnf("Fail to prefetch for %v", err)
+					}
+					defer resp.Body.Close()
 
-						needToDownloadFiles := []string{}
+					tr := tar.NewReader(resp.Body)
 
-						for _, file := range files {
-							_, err := os.Lstat(filepath.Join(GearPublicCachePath, file))
-							if err != nil {
-								needToDownloadFiles = append(needToDownloadFiles, file)
-							}
+					for {
+						th, err := tr.Next()
+						if err == io.EOF {
+							break;
 						}
 
-						v := url.Values{"files": needToDownloadFiles, "image": []string{gearImage}}
-
-						resp, err := http.PostForm("http://"+d.ManagerIp+":"+d.ManagerPort+"/prefetch", v)
+						tgt, err := os.Create(filepath.Join(GearPublicCachePath, th.Name))
 						if err != nil {
-							logger.Warnf("Fail to prefetch for %v", err)
-						}
-						defer resp.Body.Close()
-
-						tr := tar.NewReader(resp.Body)
-
-						for {
-							th, err := tr.Next()
-							if err == io.EOF {
-								break;
-							}
-
-							tgt, err := os.Create(filepath.Join(GearPublicCachePath, th.Name))
-							if err != nil {
-								logger.Warnf("Fail to create tgt file for %v", err)
-							}
-
-							gr, err := gzip.NewReader(tr)
-
-							_, err = io.Copy(tgt, gr)
-							if err != nil {
-								logger.Fatalf("Fail to copy for %v", err)
-							}
-
-							gr.Close()
-							tgt.Close()
-
-							err = os.Link(filepath.Join(GearPublicCachePath, th.Name), filepath.Join(gearImagePrivateCache, th.Name))
-							if err != nil {
-								logger.Fatalf("Fail to create hard link for %v", err)
-							}
-
-							// 设置文件权限
-							err = os.Chmod(filepath.Join(gearImagePrivateCache, th.Name), 0777)
-							if err != nil {
-								logger.Warnf("Fail to chmod file for %v", err)
-							}
+							logger.Warnf("Fail to create tgt file for %v", err)
 						}
 
-						_, err = os.Create(filepath.Join(gearGearDir, "prefetched"))
+						gr, err := gzip.NewReader(tr)
+
+						_, err = io.Copy(tgt, gr)
 						if err != nil {
-							logger.Warnf("Fail to create file for %v", err)
+							logger.Fatalf("Fail to copy for %v", err)
 						}
 
-						fmt.Println("Time used: ", time.Since(t))
-					} 
+						gr.Close()
+						tgt.Close()
+
+						err = os.Link(filepath.Join(GearPublicCachePath, th.Name), filepath.Join(gearImagePrivateCache, th.Name))
+						if err != nil {
+							logger.Fatalf("Fail to create hard link for %v", err)
+						}
+
+						// 设置文件权限
+						err = os.Chmod(filepath.Join(gearImagePrivateCache, th.Name), 0777)
+						if err != nil {
+							logger.Warnf("Fail to chmod file for %v", err)
+						}
+					}
+
+					_, err = os.Create(filepath.Join(gearGearDir, "prefetched"))
+					if err != nil {
+						logger.Warnf("Fail to create file for %v", err)
+					}
+					fmt.Println("Time used: ", time.Since(t))
+					// 结束从远程文件系统prefetch文件
 
 					// 将文件link到gear-work层目录
 					lt := time.Now()

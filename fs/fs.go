@@ -564,9 +564,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 				}
 			}
 		}
-	}()
 
-	go func() {
 		if monitorFlag {
 			if f.privateCacheName != "" {
 				RecordChan <- types.MonitorFile {
@@ -579,6 +577,20 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 			
 		}
 	}()
+
+	// go func() {
+	// 	if monitorFlag {
+	// 		if f.privateCacheName != "" {
+	// 			RecordChan <- types.MonitorFile {
+	// 				Hash: f.privateCacheName, 
+	// 				RelativePath: f.relativePath, 
+	// 			}
+	// 		} else {
+	// 			// fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
+	// 		}
+			
+	// 	}
+	// }()
 
 	return nil
 }
@@ -790,9 +802,7 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 				}
 			}
 		}
-	}()
 
-	go func() {
 		if monitorFlag {
 			if f.privateCacheName != "" {
 				RecordChan <- types.MonitorFile {
@@ -804,6 +814,19 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 			}
 		}
 	}()
+
+	// go func() {
+	// 	if monitorFlag {
+	// 		if f.privateCacheName != "" {
+	// 			RecordChan <- types.MonitorFile {
+	// 				Hash: f.privateCacheName, 
+	// 				RelativePath: f.relativePath, 
+	// 			}
+	// 		} else {
+	// 			// fmt.Println(filepath.Join(f.indexImagePath, f.relativePath))
+	// 		}
+	// 	}
+	// }()
 	
 	resp.Flags |= fuse.OpenKeepCache
 	return &fileHandler, nil
