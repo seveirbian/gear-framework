@@ -23,7 +23,7 @@ apppath = ""
 # run paraments
 hostPort = 3306
 localVolume = ""
-pwd = os.getcwd()
+pwd = os.path.split(os.path.realpath(__file__))[0]
 
 runEnvironment = ["MYSQL_ROOT_PASSWORD=1122", 
                   "MYSQL_USER=bian", 

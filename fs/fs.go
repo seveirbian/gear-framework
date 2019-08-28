@@ -386,9 +386,9 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 						}
 					}
 
-					// 判断当前目录是否是镜像层还是-init层
-					// 如果是镜像层，则将创建文件硬链接到-init层
-					// 如果是-init层，则啥都不做
+					// 判断当前目录是否是镜像层还是gear-work目录
+					// 如果是镜像层，则将创建文件硬链接到gear-work目录
+					// 如果是gear-work目录，则啥都不做
 					if f.initLayerPath != "" {
 						// 将文件link到-init层目录
 						_, err = os.Lstat(filepath.Join(f.initLayerPath, f.relativePath))
@@ -457,9 +457,9 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 					}
 				}
 
-				// 判断当前目录是否是镜像层还是-init层
-				// 如果是镜像层，则将创建文件硬链接到-init层
-				// 如果是-init层，则啥都不做
+				// 判断当前目录是否是镜像层还是gear-work目录
+				// 如果是镜像层，则将创建文件硬链接到gear-work目录
+				// 如果是gear-work目录，则啥都不做
 				if f.initLayerPath != "" {
 					// 将文件link到-init层目录
 					_, err = os.Lstat(filepath.Join(f.initLayerPath, f.relativePath))
