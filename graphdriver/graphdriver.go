@@ -271,6 +271,9 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 	fmt.Printf("  id: %s\n", id)
 	fmt.Printf("  mountlabel: %s\n", mountLabel)
 
+	// 判断是否需要监控gearfs
+	needMonitor := false
+
 	// 1. 检测目录中是否有gear-lower
 	path := filepath.Join(d.home, id, "gear-lower")
 	gearPath, err := os.Readlink(path)
@@ -310,9 +313,6 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 					logger.Warnf("Fail to create image private cache dir for %v", err)
 				}
 			}
-			
-			// 判断是否需要监控gearfs
-			needMonitor := false
 
 			recordChan := make(chan types.MonitorFile, 100)
 			// recordFilesChan := make(chan string, 100)
@@ -584,6 +584,8 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 				RecordChan: recordChan, 
 
 				InitLayerPath: initLayerPath, 
+
+				NeedMonitor: needMonitor, 
 			}
 
 			notify := make(chan int)
