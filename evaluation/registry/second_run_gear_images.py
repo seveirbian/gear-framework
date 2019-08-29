@@ -2,15 +2,13 @@ import sys
 # package need to be installed, pip install docker
 import docker 
 import time
-import random
 import yaml
 import os
+import random
 import subprocess
 import signal
 import urllib2
-import psycopg2
 import shutil
-import pymongo
 import xlwt
 # package need to be installed, apt-get install python-mysqldb
 import MySQLdb
@@ -25,9 +23,9 @@ apppath = ""
 # run paraments
 hostPort = 5000
 localVolume = ""
-pwd = os.getcwd()
+pwd = os.path.split(os.path.realpath(__file__))[0]
 
-runEnvironment = ["SEARCH_BACKEND=sqlalchemy", ]
+runEnvironment = []
 runPorts = {"5000/tcp": hostPort, }
 runVolumes = {}
 runWorking_dir = ""
@@ -35,7 +33,7 @@ runCommand = ""
 waitline = ""
 
 # result
-result = [["tag", "finishTime", "data"], ]
+result = [["tag", "finishTime", "local data", "pull data"], ]
 
 class Runner:
 
@@ -120,9 +118,14 @@ class Runner:
 
                 print "finished in " , finishTime, "s"
 
-                data = get_net_data() - cnetdata
+                container_path = os.path.join("/var/lib/gear/private", private_repo)
+                local_data = subprocess.check_output(['du','-sh', container_path]).split()[0].decode('utf-8')
 
-                print "pull data: ", data
+                print "local data: ", local_data
+
+                pull_data = get_net_data() - cnetdata
+
+                print "pull data: ", pull_data
 
                 print "\n"
 
@@ -135,7 +138,7 @@ class Runner:
                 container.remove(force=True)
 
                 # record the image and its Running time
-                result.append([tag, finishTime, data])
+                result.append([tag, finishTime, local_data, pull_data])
 
                 if auto != True: 
                     raw_input("Next?")
@@ -192,4 +195,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save("./second_run.xls")
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/second_run.xls")
