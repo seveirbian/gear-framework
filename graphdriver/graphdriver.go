@@ -516,7 +516,9 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 
 						err = os.Link(filepath.Join(GearPublicCachePath, th.Name), filepath.Join(gearImagePrivateCache, th.Name))
 						if err != nil {
-							logger.Fatalf("Fail to create hard link for %v", err)
+							if !strings.Contains(err.Error(), "file exists") {
+								logger.Fatalf("Fail to create hard link for %v", err)
+							}
 						}
 
 						// 设置文件权限
@@ -558,7 +560,9 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 								}
 								err = os.Link(filepath.Join("/var/lib/gear/public", file), filepath.Join(initLayerPath, relativePath))
 								if err != nil {
-									logger.Fatalf("Fail to create hard link for %v", err)
+									if !strings.Contains(err.Error(), "file exists") {
+										logger.Fatalf("Fail to create hard link for %v", err)
+									}
 								}
 								err = os.Chmod(filepath.Join(initLayerPath, relativePath), 0777)
 								if err != nil {
