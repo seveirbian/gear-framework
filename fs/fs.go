@@ -580,6 +580,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 					}
 				}
 			}
+		}()
 	}
 	
 
@@ -818,6 +819,7 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 					}
 				}
 			}
+		}()
 	}
 
 	go func() {
