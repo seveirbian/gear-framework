@@ -857,8 +857,9 @@ func (f *File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string,
 			}
 			err = os.Symlink(target, filepath.Join(indexPath, "gear-work", f.relativePath))
 			if err != nil {
-				fmt.Println(err.Error())
-				logger.Fatalf("Fail to create symlink for %v", err)
+				if !strings.Contains(err.Error(), "file exists") {
+					logger.Fatalf("Fail to create symlink for %v", err)
+				}
 			}
 		}
 	}()
