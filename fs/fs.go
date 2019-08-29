@@ -841,24 +841,27 @@ func (f *File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string,
 		logger.Warnf("Fail to read link for %v", err)
 	}
 
-	// 在gear-work目录创建软连接
-	// 创建硬链接到diff目录
-	indexPath := filepath.Join(f.indexImagePath, "..")
-	_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
-	if err != nil {
-		initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
-		_, err = os.Lstat(initDir)
+	go func() {
+		// 在gear-work目录创建软连接
+		// 创建硬链接到diff目录
+		indexPath := filepath.Join(f.indexImagePath, "..")
+		_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
 		if err != nil {
-			err := os.MkdirAll(initDir, os.ModePerm)
+			initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
+			_, err = os.Lstat(initDir)
 			if err != nil {
-				logger.Warnf("Fail to create initDir for %v", err)
+				err := os.MkdirAll(initDir, os.ModePerm)
+				if err != nil {
+					logger.Warnf("Fail to create initDir for %v", err)
+				}
+			}
+			err = os.Symlink(target, filepath.Join(indexPath, "gear-work", f.relativePath))
+			if err != nil {
+				fmt.Println(err.Error())
+				logger.Fatalf("Fail to create symlink for %v", err)
 			}
 		}
-		err = os.Symlink(target, filepath.Join(indexPath, "gear-work", f.relativePath))
-		if err != nil {
-			logger.Fatalf("Fail to create symlink for %v", err)
-		}
-	}
+	}()
 
 	return target, err
 }
