@@ -39,6 +39,15 @@ def run_command(file):
     ret_code = p.wait()
     return ret_code
 
+def check_image_num(image):
+    generator = Generator(os.path.split(os.path.realpath(__file__))[0]+"/"+image+"/image_versions.yaml")
+
+    docker_images = generator.generateFromProfile()
+
+    images = docker_images[0][image]
+
+    return len(images)
+
 def check_gear_ready(image):
     req = urllib2.urlopen("http://202.114.10.146:9999/v2/"+image+"-gear/tags/list")
     image_info = req.read().split("\"tags\":[")
@@ -46,7 +55,7 @@ def check_gear_ready(image):
     image_info = image_info[0]
     image_info = image_info.split(",")
     image_num = len(image_info)
-    if image_num != 20:
+    if image_num != check_image_num(image):
         return False
     return True
 
@@ -57,7 +66,7 @@ def check_gearmd_ready(image):
     image_info = image_info[0]
     image_info = image_info.split(",")
     image_num = len(image_info)
-    if image_num != 20:
+    if image_num != check_image_num(image):
         return False
     return True
 
