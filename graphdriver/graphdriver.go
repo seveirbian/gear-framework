@@ -585,7 +585,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 
 				InitLayerPath: initLayerPath, 
 
-				NeedMonitor: needMonitor, 
+				NeedMonitor: false, 
 			}
 
 			notify := make(chan int)
