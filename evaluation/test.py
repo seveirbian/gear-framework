@@ -44,7 +44,7 @@ def check_image_num(image):
 
     docker_images = generator.generateFromProfile()
 
-    images = docker_images[0][image]
+    images = docker_images[1][image]
 
     return len(images)
 
