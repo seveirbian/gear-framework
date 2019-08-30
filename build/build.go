@@ -375,7 +375,7 @@ func (b *Builder) tarAndCopy(recordedFiles, recordedFileNames []string) error {
 		return err
 	}
 
-	if recordedFiles != nil {
+	if recordedFiles != nil && recordedFileNames != nil {
 		content := ""
 
 		if len(recordedFiles) != len(recordedFileNames) {
@@ -417,6 +417,12 @@ func (b *Builder) tarAndCopy(recordedFiles, recordedFileNames []string) error {
 		if err != nil {
 			logger.WithField("err", err).Warn("Fail to write content...")
 			return err
+		}
+
+		// 删除RecordFiles
+		err = os.Remove(filepath.Join(mergedPath, "RecordFiles"))
+		if err != nil {
+			logger.Warnf("Fail to remove RecordFiles for %v", err)
 		}
 	}
 
