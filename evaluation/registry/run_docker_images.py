@@ -24,7 +24,7 @@ hostPort = 5000
 localVolume = ""
 pwd = os.path.split(os.path.realpath(__file__))[0]
 
-runEnvironment = []
+runEnvironment = ["GUNICORN_OPTS=[--preload]", ]
 runPorts = {"5000/tcp": hostPort, }
 runVolumes = {}
 runWorking_dir = ""
