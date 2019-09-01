@@ -25,8 +25,8 @@ hostPort = 11211
 localVolume = ""
 pwd = os.path.split(os.path.realpath(__file__))[0]
 
-runEnvironment = ["11211/tcp": hostPort, ]
-runPorts = {}
+runEnvironment = []
+runPorts = {"11211/tcp": hostPort, }
 runVolumes = {}
 runWorking_dir = ""
 runCommand = "memcached -p 11211"
