@@ -22,10 +22,10 @@ apppath = ""
 # run paraments
 hostPort = 11211
 localVolume = ""
-pwd = os.getcwd()
+pwd = os.path.split(os.path.realpath(__file__))[0]
 
-runEnvironment = []
-runPorts = {"11211/tcp": hostPort,}
+runEnvironment = ["11211/tcp": hostPort, ]
+runPorts = {}
 runVolumes = {}
 runWorking_dir = ""
 runCommand = "memcached -p 11211"
@@ -171,4 +171,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save("./run.xls")
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/run.xls")
