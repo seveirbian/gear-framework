@@ -8,8 +8,6 @@ import random
 import subprocess
 import signal
 import urllib2
-# package need to be installed, apt-get install python-pymongo
-import pymongo
 import shutil
 import xlwt
 # package need to be installed, apt-get install python-mysqldb
@@ -24,13 +22,13 @@ apppath = ""
 # run paraments
 hostPort = 3306
 localVolume = ""
-pwd = os.getcwd()
+pwd = os.path.split(os.path.realpath(__file__))[0]
 
 runEnvironment = ["MYSQL_ROOT_PASSWORD=1122", 
                   "MYSQL_USER=bian", 
                   "MYSQL_PASSWORD=1122", 
                   "MYSQL_DATABASE=games"]
-runPorts = {"3306/tcp": hostPort, }
+runPorts = {"3306/tcp": hostPort,}
 runVolumes = {os.path.join(pwd, "my.cnf"): {'bind': '/etc/mysql/my.cnf', 'mode': 'rw'}, }
 runWorking_dir = ""
 runCommand = ""
@@ -187,4 +185,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save("./run.xls")
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/run.xls")
