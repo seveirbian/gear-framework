@@ -22,7 +22,7 @@ apppath = ""
 # run paraments
 hostPort = 9200
 localVolume = ""
-pwd = os.getcwd()
+pwd = os.path.split(os.path.realpath(__file__))[0]
 
 runEnvironment = ["discovery.type=single-node", ]
 runPorts = {"9200/tcp": hostPort, "9300/tcp": 9300, }
@@ -174,4 +174,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save("./run.xls")
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/run.xls")

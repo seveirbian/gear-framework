@@ -21,6 +21,6 @@
   # - "mariadb"
   # - "docker"
   # - "centos"
-  - "debian"
-  # - "elasticsearch"
+  # - "debian"
+  - "elasticsearch"
   # - "ruby"
