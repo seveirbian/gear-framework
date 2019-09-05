@@ -73,7 +73,7 @@ def check_gearmd_ready(image):
 def check_docker_images_size():
     docker_images = os.path.join("/var/lib/docker/geargraphdriver")
     local_data = subprocess.check_output(['du','-ms', docker_images]).split()[0].decode('utf-8')
-    print "Docker images size: " local_data
+    print "Docker images size: ", local_data
 
 def test_one_image(image):
     if test_pull == True:
