@@ -112,7 +112,7 @@ class Runner:
                 print "finished in " , finishTime, "s"
 
                 container_path = os.path.join("/var/lib/gear/private", private_repo)
-                local_data = subprocess.check_output(['du','-sh', container_path]).split()[0].decode('utf-8')
+                local_data = subprocess.check_output(['du','-ms', container_path]).split()[0].decode('utf-8')
 
                 print "local data: ", local_data
 

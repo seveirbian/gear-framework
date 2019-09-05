@@ -70,6 +70,11 @@ def check_gearmd_ready(image):
         return False
     return True
 
+def check_docker_images_size():
+    docker_images = os.path.join("/var/lib/docker/geargraphdriver")
+    local_data = subprocess.check_output(['du','-ms', docker_images]).split()[0].decode('utf-8')
+    print "Docker images size: " local_data
+
 def test_one_image(image):
     if test_pull == True:
         empty_cache()
@@ -94,6 +99,8 @@ def test_one_image(image):
         step4_file = os.path.join(pwd, image, "pull_docker_images_from_private_registry.py")
         if run_command(step4_file) != 0:
             print "fail step 4"
+        # print docker images size
+        check_docker_images_size()
         print "run docker images"
         step5_file = os.path.join(pwd, image, "run_docker_images.py")
         if run_command(step5_file) != 0:

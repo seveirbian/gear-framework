@@ -21,12 +21,12 @@ suffix = "-gear"
 apppath = ""
 
 # run paraments
-hostPort = 11211
+hostPort = 9200
 localVolume = ""
-pwd = os.getcwd()
+pwd = os.path.split(os.path.realpath(__file__))[0]
 
 runEnvironment = []
-runPorts = {"11211/tcp": hostPort,}
+runPorts = {}
 runVolumes = {os.path.join(pwd, "hello.rb"): {'bind': '/hello.rb', 'mode': 'rw'},}
 runWorking_dir = ""
 runCommand = "ruby /hello.rb"
@@ -83,16 +83,16 @@ class Runner:
                     if container.logs().find(waitline) >= 0:
                         break
                     else:
-                        time.sleep(0.01)
+                        time.sleep(0.1)
                         pass
-
+                        
                 # print run time
                 finishTime = time.time() - startTime
 
                 print "finished in " , finishTime, "s"
 
                 container_path = os.path.join("/var/lib/gear/private", private_repo)
-                local_data = subprocess.check_output(['du','-sh', container_path]).split()[0].decode('utf-8')
+                local_data = subprocess.check_output(['du','-ms', container_path]).split()[0].decode('utf-8')
 
                 print "local data: ", local_data
 
@@ -171,4 +171,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save("./first_run.xls")
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/first_run.xls")
