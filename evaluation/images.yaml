@@ -23,5 +23,6 @@
   # - "centos"
   # - "debian"
   # - "elasticsearch"
-  - "ruby"
-  # - "php"
+  # - "ruby"
+  - "php"
+  # - "influxdb"

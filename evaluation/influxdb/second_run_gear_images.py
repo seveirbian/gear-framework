@@ -111,7 +111,7 @@ class Runner:
                 container.remove(force=True)
 
                 # record the image and its Running time
-                result.append([tag, finishTime, local_data, pull_data])
+                result.append([tag, finishTime, int(local_data), pull_data])
 
                 if auto != True: 
                     raw_input("Next?")
