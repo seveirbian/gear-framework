@@ -10,8 +10,6 @@ import signal
 import urllib2
 import shutil
 import xlwt
-# package need to be installed, pip install elasticsearch
-from elasticsearch import Elasticsearch
 
 auto = False
 
