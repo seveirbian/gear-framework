@@ -25,4 +25,5 @@
   # - "elasticsearch"
   # - "ruby"
   # - "php"
-  - "influxdb"
+  # - "influxdb"
+  - "rabbitmq"
