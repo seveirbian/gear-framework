@@ -21,16 +21,16 @@ suffix = "-gearmd"
 apppath = ""
 
 # run paraments
-hostPort = 9200
+hostPort = 8086
 localVolume = ""
 pwd = os.path.split(os.path.realpath(__file__))[0]
 
 runEnvironment = []
-runPorts = {}
-runVolumes = {os.path.join(pwd, "hello.php"): {'bind': '/hello.php', 'mode': 'rw'},}
+runPorts = {"8086/tcp": hostPort,}
+runVolumes = {}
 runWorking_dir = ""
-runCommand = "php /hello.php"
-waitline = "hello"
+runCommand = ""
+waitline = ""
 
 # result
 result = [["tag", "finishTime", "local data", "pull data"], ]
@@ -80,10 +80,48 @@ class Runner:
                 container.start()
 
                 while True:
-                    if container.logs().find(waitline) >= 0:
+                    if time.time() - startTime > 600:
                         break
-                    else:
-                        time.sleep(0.1)
+
+                    try:
+                        ifx_cli = InfluxDBClient('localhost', 8086, 'root', '', '')
+                        ifx_cli.create_database('games')
+                        print "successfully create games db!"
+                        json_body = [
+                            {
+                                "measurement": "games",
+                                "tags": {
+                                    "id": "1",
+                                },
+                                "time": "2009-11-10T23:00:00Z",
+                                "fields": {
+                                    "Three kingdoms": 800
+                                }
+                            }
+                        ]
+                        ifx_cli = InfluxDBClient('localhost', 8086, 'root', '', 'games')
+                        ifx_cli.write_points(json_body)
+                        print "successfully insert!"
+                        json_body = [
+                            {
+                                "measurement": "games",
+                                "tags": {
+                                    "id": "1",
+                                },
+                                "time": "2009-11-10T23:00:00Z",
+                                "fields": {
+                                    "Three kingdoms": 900
+                                }
+                            }
+                        ]
+                        ifx_cli.write_points(json_body)
+                        result = ifx_cli.query('select * from games;')    
+                        print "Result: ", result
+                        ifx_cli.query('delete from games;')
+                        print "successfully delete!"
+                        break
+                    except:
+                        time.sleep(0.1) # wait 100ms
                         pass
 
                 # print run time
