@@ -111,8 +111,8 @@ class Runner:
                             }
                         ]
                         ifx_cli.write_points(json_body)
-                        result = ifx_cli.query('select * from games;')    
-                        print "Result: ", result
+                        ifx_res = ifx_cli.query('select * from games;')    
+                        print "Result: ", ifx_res
                         ifx_cli.query('delete from games;')
                         print "successfully delete!"
                         break
