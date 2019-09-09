@@ -27,4 +27,5 @@
   # - "php"
   # - "influxdb"
   # - "rabbitmq"
-  - "python"
+  # - "python"
+  - "tomcat"

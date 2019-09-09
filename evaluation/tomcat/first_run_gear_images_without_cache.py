@@ -16,6 +16,7 @@ import pika
 auto = False
 
 private_registry = "202.114.10.146:9999/"
+suffix = "-gear"
 
 apppath = ""
 
@@ -32,7 +33,7 @@ runCommand = ""
 waitline = ""
 
 # result
-result = [["tag", "finishTime"], ]
+result = [["tag", "finishTime", "local data", "pull data", "file_num"], ]
 
 class Runner:
 
@@ -54,7 +55,7 @@ class Runner:
         for repo in repos:
             tags = self.images_to_pull[1][repo]
             for tag in tags:
-                private_repo = private_registry + repo + ":" + tag
+                private_repo = private_registry + repo + suffix + ":" + tag
 
                 if localVolume != "":
                     if os.path.exists(localVolume) == False:
@@ -67,6 +68,9 @@ class Runner:
 
                 # get present time
                 startTime = time.time()
+
+                # get present net data
+                cnetdata = get_net_data()
 
                 # run images
                 container = client.containers.create(image=private_repo, environment=runEnvironment,
@@ -92,18 +96,44 @@ class Runner:
                 # print run time
                 finishTime = time.time() - startTime
 
-                print "finished in " , finishTime, "s\n"
+                print "finished in " , finishTime, "s"
+
+                container_path = os.path.join("/var/lib/gear/private", private_repo)
+                local_data = subprocess.check_output(['du','-ms', container_path]).split()[0].decode('utf-8')
+
+                print "local data: ", local_data
+
+                pull_data = get_net_data() - cnetdata
+
+                print "pull data: ", pull_data
 
                 try: 
                     container.kill()
                 except:
                     print "kill fail!"
                     pass
-                    
+
                 container.remove(force=True)
+                # cmd = '%s kill %s' % ("docker", runName)
+                # rc = os.system(cmd)
+                # assert(rc == 0)
+
+                file_num = 0
+                private_path = os.path.join("/var/lib/gear/private", private_repo)
+                for root, dirs, files in os.walk(private_path):
+                    for each in files:
+                        file_num += 1
+
+                print "file numbers: ", file_num
+
+                # delete files under /var/lib/gear/public/
+                shutil.rmtree('/var/lib/gear/public/')
+                os.mkdir('/var/lib/gear/public/')
+
+                print "empty cache! \n"
 
                 # record the image and its Running time
-                result.append([tag, finishTime])
+                result.append([tag, finishTime, int(local_data), pull_data, file_num])
 
                 if auto != True: 
                     raw_input("Next?")
@@ -139,7 +169,6 @@ def get_net_data():
     fd.close()
     return data
 
-
 if __name__ == "__main__":
 
     if len(sys.argv) == 2:
@@ -161,4 +190,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/run.xls")
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/first_run_without_cache.xls")
