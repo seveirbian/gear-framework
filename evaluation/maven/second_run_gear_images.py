@@ -27,10 +27,10 @@ pwd = os.path.split(os.path.realpath(__file__))[0]
 
 runEnvironment = []
 runPorts = {"8080/tcp": hostPort,}
-runVolumes = {}
-runWorking_dir = ""
-runCommand = ""
-waitline = ""
+runVolumes = {os.path.join(pwd, "hello"): {'bind': '/usr/src/mymaven', 'mode': 'rw'},}
+runWorking_dir = "/usr/src/mymaven"
+runCommand = "mvn -h"
+waitline = "-X,--debug"
 
 # result
 result = [["tag", "finishTime", "local data", "pull data"], ]
@@ -80,17 +80,12 @@ class Runner:
                 container.start()
 
                 while True:
-                    if time.time() - startTime > 600:
+                    if waitline == "":
                         break
-
-                    try:
-                        req = urllib2.urlopen('http://localhost:%d'%hostPort)
-                        if req.read().find("All Rights Reserved") >= 0:
-                            print "OK!"
-                        req.close()
+                    elif container.logs().find(waitline) >= 0:
                         break
-                    except:
-                        time.sleep(0.1) # wait 100ms
+                    else:
+                        time.sleep(0.1)
                         pass
 
                 # print run time
@@ -107,6 +102,8 @@ class Runner:
 
                 print "pull data: ", pull_data
 
+                print "\n"
+
                 try: 
                     container.kill()
                 except:
@@ -114,12 +111,6 @@ class Runner:
                     pass
                     
                 container.remove(force=True)
-
-                # delete files under /var/lib/gear/public/
-                shutil.rmtree('/var/lib/gear/public/')
-                os.mkdir('/var/lib/gear/public/')
-
-                print "empty cache! \n"
 
                 # record the image and its Running time
                 result.append([tag, finishTime, int(local_data), pull_data])
@@ -179,4 +170,4 @@ if __name__ == "__main__":
         for column in range(len(result[row])):
             sheet.write(row, column, result[row][column])
 
-    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/second_run_without_cache.xls")
+    workbook.save(os.path.split(os.path.realpath(__file__))[0]+"/second_run.xls")

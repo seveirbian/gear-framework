@@ -27,10 +27,10 @@ pwd = os.path.split(os.path.realpath(__file__))[0]
 
 runEnvironment = []
 runPorts = {"8080/tcp": hostPort,}
-runVolumes = {}
-runWorking_dir = ""
-runCommand = ""
-waitline = ""
+runVolumes = {os.path.join(pwd, "hello"): {'bind': '/usr/src/mymaven', 'mode': 'rw'},}
+runWorking_dir = "/usr/src/mymaven"
+runCommand = "mvn -h"
+waitline = "-X,--debug"
 
 # result
 result = [["tag", "finishTime", "local data", "pull data"], ]
@@ -80,17 +80,12 @@ class Runner:
                 container.start()
 
                 while True:
-                    if time.time() - startTime > 600:
+                    if waitline == "":
                         break
-
-                    try:
-                        req = urllib2.urlopen('http://localhost:%d'%hostPort)
-                        if req.read().find("All Rights Reserved") >= 0:
-                            print "OK!"
-                        req.close()
+                    elif container.logs().find(waitline) >= 0:
                         break
-                    except:
-                        time.sleep(0.1) # wait 100ms
+                    else:
+                        time.sleep(0.1)
                         pass
 
                 # print run time

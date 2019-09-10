@@ -27,7 +27,7 @@ pwd = os.path.split(os.path.realpath(__file__))[0]
 
 runEnvironment = []
 runPorts = {"8080/tcp": hostPort,}
-runVolumes = {os.path.join(pwd, "hello.py"): {'bind': '/hello.py', 'mode': 'rw'},}
+runVolumes = {}
 runWorking_dir = ""
 runCommand = ""
 waitline = ""
