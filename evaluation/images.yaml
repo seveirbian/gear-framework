@@ -28,4 +28,5 @@
   # - "influxdb"
   # - "rabbitmq"
   # - "python"
-  - "tomcat"
+  # - "tomcat"
+  - "maven"
