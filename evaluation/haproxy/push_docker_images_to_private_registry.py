@@ -72,7 +72,7 @@ class Generator:
             print "Error: profile path is null"
 
         with open(self.profilePath, 'r') as f:
-            self.images_to_push = yaml.load(f)
+            self.images_to_push = yaml.load(f, Loader=yaml.FullLoader)
 
         return self.images_to_push
 
