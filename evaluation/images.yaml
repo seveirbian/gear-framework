@@ -29,4 +29,5 @@
   # - "rabbitmq"
   # - "python"
   # - "tomcat"
-  - "maven"
+  # - "maven"
+  - "haproxy"
