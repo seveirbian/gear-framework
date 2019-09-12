@@ -84,7 +84,7 @@ class Runner:
                         break
 
                     try:
-                        req = urllib2.urlopen('http://localhost:%d'%hostPort, timeout = 1)
+                        req = urllib2.urlopen('http://localhost:%d'%hostPort, timeout = 10)
                         if req.read().find("baidu.com") >= 0:
                             print "OK!"
                         req.close()
