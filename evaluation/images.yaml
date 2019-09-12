@@ -30,4 +30,5 @@
   # - "python"
   # - "tomcat"
   # - "maven"
-  - "haproxy"
+  # - "haproxy"
+  - "wordpress"
