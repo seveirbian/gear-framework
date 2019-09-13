@@ -31,4 +31,5 @@
   # - "tomcat"
   # - "maven"
   # - "haproxy"
-  - "wordpress"
+  # - "wordpress"
+  - "amazonlinux"
