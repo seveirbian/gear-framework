@@ -89,7 +89,7 @@ class Runner:
                         cursor = connection.cursor()
                         cursor.execute('''CREATE TABLE GAMES
                                    (ID INT PRIMARY KEY     NOT NULL,
-                                   NAME           TEXT);''')
+                                   NAME STRING);''')
                         print "successfully create table games!"
                         cursor.execute(
                                 """INSERT INTO GAMES (ID, NAME)
@@ -99,7 +99,7 @@ class Runner:
                         cursor.execute("UPDATE GAMES set NAME = 'Dota2' where ID=1;")
                         print "successfully update!"
                         cursor.execute("SELECT ID, NAME from GAMES;")
-                        row = cursor.fetchall()
+                        rows = cursor.fetchall()
                         print rows
                         cursor.execute("DELETE from GAMES where ID=1;")
                         print "successfully delete!"
