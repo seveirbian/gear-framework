@@ -95,7 +95,7 @@ class Runner:
                         cursor.execute("UPDATE GAMES set NAME = 'Dota2' where ID=1;")
                         print "successfully update!"
                         cursor.execute("SELECT ID, NAME from GAMES;")
-                        row = cursor.fetchall()
+                        rows = cursor.fetchall()
                         print rows
                         cursor.execute("DELETE from GAMES where ID=1;")
                         print "successfully delete!"
