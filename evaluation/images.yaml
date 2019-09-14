@@ -32,4 +32,5 @@
   # - "maven"
   # - "haproxy"
   # - "wordpress"
-  - "amazonlinux"
+  # - "amazonlinux"
+  - "crate"
