@@ -81,11 +81,11 @@ class Runner:
                         break
 
                     try:
-                        connection = crate.client.connect("localhost:4200", username="crate")
+                        connection = crate_client.connect("localhost:4200", username="crate")
                         cursor = connection.cursor()
                         cursor.execute('''CREATE TABLE GAMES
                                    (ID INT PRIMARY KEY     NOT NULL,
-                                   NAME           TEXT);''')
+                                   NAME STRING);''')
                         print "successfully create table games!"
                         cursor.execute(
                                 """INSERT INTO GAMES (ID, NAME)
