@@ -85,7 +85,7 @@ class Runner:
                         break
 
                     try:
-                        connection = crate_client.connect("localhost:4200", username="crate")
+                        connection = crate_client.connect("http://localhost:4200", username="crate")
                         cursor = connection.cursor()
                         cursor.execute('''CREATE TABLE GAMES
                                    (ID INT PRIMARY KEY     NOT NULL,
