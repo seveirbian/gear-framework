@@ -11,7 +11,7 @@ import urllib2
 import shutil
 import xlwt
 # package need to be installed, pip install crate
-import crate
+from crate import client as crate_client
 
 auto = False
 
@@ -85,7 +85,7 @@ class Runner:
                         break
 
                     try:
-                        connection = crate.client.connect("localhost:4200", username="crate")
+                        connection = crate_client.connect("localhost:4200", username="crate")
                         cursor = connection.cursor()
                         cursor.execute('''CREATE TABLE GAMES
                                    (ID INT PRIMARY KEY     NOT NULL,

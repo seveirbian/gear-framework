@@ -11,7 +11,7 @@ import urllib2
 import shutil
 import xlwt
 # package need to be installed, pip install crate
-import crate
+from crate import client as crate_client
 
 auto = False
 
