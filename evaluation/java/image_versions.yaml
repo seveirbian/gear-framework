@@ -1,0 +1,24 @@
+---
+- repo:
+  - java
+- java:
+  - "openjdk-9-b101-jdk"
+  - "openjdk-9-b102-jdk"
+  - "openjdk-9-b112-jdk"
+  - "openjdk-9-b113-jdk"
+  - "openjdk-9-b115-jdk"
+  - "openjdk-9-b116-jdk"
+  - "openjdk-9-b124-jdk"
+  - "openjdk-9-b130-jdk"
+  - "openjdk-9-b133-jdk"
+  - "openjdk-9-b134-jdk"
+  - "openjdk-9-b135-jdk"
+  - "openjdk-9-b136-jdk"
+  - "openjdk-9-b139-jdk"
+  - "openjdk-9-b140-jdk"
+  - "openjdk-9-b142-jdk"
+  - "openjdk-9-b143-jdk"
+  - "openjdk-9-b144-jdk"
+  - "openjdk-9-b147-jdk"
+  - "openjdk-9-b148-jdk"
+  - "openjdk-9-b149-jdk"
