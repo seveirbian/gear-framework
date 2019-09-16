@@ -1,0 +1,24 @@
+---
+- repo:
+  - sonarqube
+- sonarqube:
+  - "6.3"
+  - "6.4"
+  - "6.5"
+  - "6.6"
+  - "6.7.1"
+  - "6.7.2"
+  - "6.7.3"
+  - "6.7.4"
+  - "6.7.5"
+  - "6.7.6-community"
+  - "6.7.7-community"
+  - "7.0"
+  - "7.1"
+  - "7.4-community"
+  - "7.5-community"
+  - "7.6-community"
+  - "7.7-community"
+  - "7.8-community"
+  - "7.9-community"
+  - "7.9.1-community"

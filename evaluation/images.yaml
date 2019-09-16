@@ -34,4 +34,5 @@
   # - "wordpress"
   # - "amazonlinux"
   # - "crate"
-  - "java"
+  # - "java"
+  - "sonarqube"
