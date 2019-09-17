@@ -561,7 +561,7 @@ func (d *Driver) Get(id, mountLabel string) (containerfs.ContainerFS, error) {
 								err = os.Link(filepath.Join("/var/lib/gear/public", file), filepath.Join(initLayerPath, relativePath))
 								if err != nil {
 									if !strings.Contains(err.Error(), "file exists") {
-										logger.Fatalf("Fail to create hard link for %v", err)
+										logger.Warnf("Fail to create hard link for %v", err)
 									}
 								}
 								err = os.Chmod(filepath.Join(initLayerPath, relativePath), 0777)
