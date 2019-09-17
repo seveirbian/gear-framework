@@ -71,7 +71,7 @@ func handleJoin(c echo.Context) error {
 func handlePull(c echo.Context) error {
 	cid := c.Param("CID")
 
-	fmt.Println(filepath.Join(GearStoragePath, cid))
+	// fmt.Println(filepath.Join(GearStoragePath, cid))
 
 	_,  err := os.Lstat(filepath.Join(GearStoragePath, cid))
 	if err != nil {
