@@ -35,4 +35,5 @@
   # - "amazonlinux"
   # - "crate"
   # - "java"
-  - "sonarqube"
+  # - "sonarqube"
+  - "nextcloud"
