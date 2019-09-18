@@ -37,6 +37,6 @@
   # - "java"
   # - "sonarqube"
   # - "nextcloud"
-  - "telegraf"
-  # - "kibana"
+  # - "telegraf"
+  - "kibana"
   # - "cassandra"
