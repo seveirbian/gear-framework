@@ -20,16 +20,16 @@ private_registry = "202.114.10.146:9999/"
 apppath = ""
 
 # run paraments
-hostPort = 8080
+hostPort = 8094
 localVolume = ""
 pwd = os.path.split(os.path.realpath(__file__))[0]
 
 runEnvironment = []
-runPorts = {"80/tcp": hostPort, }
+runPorts = {"8094/tcp": hostPort, }
 runVolumes = {}
 runWorking_dir = ""
 runCommand = ""
-waitline = ""
+waitline = "connection refused"
 
 # result
 result = [["tag", "finishTime"], ]
@@ -76,17 +76,12 @@ class Runner:
                 container.start()
 
                 while True:
-                    if time.time() - startTime > 600:
+                    if waitline == "":
                         break
-
-                    try:
-                        req = urllib2.urlopen('http://localhost:%d'%hostPort, timeout = 10)
-                        if req.code == 200:
-                            print "OK!"
-                        req.close()
+                    elif container.logs().find(waitline) >= 0:
                         break
-                    except:
-                        time.sleep(0.1) # wait 100ms
+                    else:
+                        time.sleep(0.1)
                         pass
 
                 # print run time
