@@ -50,7 +50,7 @@ func handleEvent(c echo.Context) error {
 		// 3. 构建包含预取文件的新gear镜像
 		builder, err := build.InitBuilder(image, "-gearmd")
 		if err != nil {
-			logger.Fatal("Fail to init a builder to build gear image...")
+			logger.Fatal("Fail to init a builder to build gear image for %v", err)
 		}
 		err = builder.Build(files, names)
 		if err != nil {
