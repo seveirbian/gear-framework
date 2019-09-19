@@ -10,8 +10,8 @@ import signal
 import urllib2
 import shutil
 import xlwt
-# package need to be installed, pip install crate
-from crate import client as crate_client
+# package need to be installed, pip install cassandra-driver
+from cassandra.cluster import Cluster
 
 auto = False
 
@@ -21,12 +21,12 @@ suffix = "-gearmd"
 apppath = ""
 
 # run paraments
-hostPort = 8080
+hostPort = 9042
 localVolume = ""
 pwd = os.path.split(os.path.realpath(__file__))[0]
 
 runEnvironment = []
-runPorts = {"80/tcp": hostPort, }
+runPorts = {"9042/tcp": hostPort, }
 runVolumes = {}
 runWorking_dir = ""
 runCommand = ""
@@ -84,10 +84,24 @@ class Runner:
                         break
 
                     try:
-                        req = urllib2.urlopen('http://localhost:%d'%hostPort, timeout = 10)
-                        if req.code == 200:
-                            print "OK!"
-                        req.close()
+                        cluster = Cluster()
+                        session = cluster.connect()
+                        session.execute('''CREATE KEYSPACE IF NOT EXISTS games WITH REPLICATION = {'class': 'SimpleStrategy','replication_factor':1};''')
+                        print "successfully create keyspace games!"
+                        session.set_keyspace('games')
+                        print "successfully set keyspace games!"
+                        session.execute('''CREATE TABLE GAMES (ID INT, NAME VARCHAR,  PRIMARY KEY (ID));''')
+                        print "successfully create table games!"
+                        session.execute('''INSERT INTO GAMES (ID, NAME) \
+                            VALUES (1, 'Three kingdoms');''')
+                        print "successfully insert!"
+                        session.execute('''UPDATE GAMES set NAME = 'Dota2' where ID=1;''')
+                        print "successfully update!"
+                        rows = session.execute('''SELECT ID, NAME from GAMES;''')
+                        for row in rows:
+                            print row[0], row[1]
+                        session.execute('''DELETE from GAMES where ID=1;''')
+                        print "successfully delete!"
                         break
                     except:
                         time.sleep(0.1) # wait 100ms
