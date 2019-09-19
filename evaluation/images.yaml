@@ -38,5 +38,5 @@
   # - "sonarqube"
   # - "nextcloud"
   # - "telegraf"
-  - "kibana"
-  # - "cassandra"
+  # - "kibana"
+  - "cassandra"
