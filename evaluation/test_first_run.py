@@ -113,16 +113,16 @@ def test_one_image(image):
         while check_gear_ready(image) != True:
             time.sleep(0.1)
 
-        print "make gearmd image..."
-        print "first pull gear images from private registry"
-        step_pull_gear_file = os.path.join(pwd, image, "first_pull_gear_images_from_private_registry.py")
-        if run_command(step_pull_gear_file) != 0:
-            print "fail pull gear images"
-        print "first run gear images with cache"
-        step_make_gear_file = os.path.join(pwd, image, "first_run_gear_images.py")
-        if run_command(step_make_gear_file) != 0:
-            print "fail run gear images"
-        print "gearmd image made!!!"
+        # print "make gearmd image..."
+        # print "first pull gear images from private registry"
+        # step_pull_gear_file = os.path.join(pwd, image, "first_pull_gear_images_from_private_registry.py")
+        # if run_command(step_pull_gear_file) != 0:
+        #     print "fail pull gear images"
+        # print "first run gear images with cache"
+        # step_make_gear_file = os.path.join(pwd, image, "first_run_gear_images.py")
+        # if run_command(step_make_gear_file) != 0:
+        #     print "fail run gear images"
+        # print "gearmd image made!!!"
 
         empty_cache()
 

@@ -39,4 +39,5 @@
   # - "nextcloud"
   # - "telegraf"
   # - "kibana"
-  - "cassandra"
+  # - "cassandra"
+  - "ghost"
