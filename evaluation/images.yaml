@@ -40,4 +40,5 @@
   # - "telegraf"
   # - "kibana"
   # - "cassandra"
-  - "ghost"
+  # - "ghost"
+  - "kong"
