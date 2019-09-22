@@ -42,4 +42,5 @@
   # - "cassandra"
   # - "ghost"
   # - "kong"
-  - "gradle"
+  # - "gradle"
+  - "logstash"
