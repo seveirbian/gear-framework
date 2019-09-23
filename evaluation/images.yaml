@@ -44,4 +44,5 @@
   # - "kong"
   # - "gradle"
   # - "logstash"
-  - "eclipse-mosquitto"
+  # - "eclipse-mosquitto"
+  - "solr"
