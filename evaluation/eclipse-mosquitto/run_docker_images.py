@@ -10,8 +10,10 @@ import signal
 import urllib2
 import shutil
 import xlwt
-# package need to be installed, pip install cassandra-driver
-from cassandra.cluster import Cluster
+# git clone https://github.com/eclipse/paho.mqtt.python
+# cd into folder
+# python setup.py install
+import paho.mqtt.client as mqtt
 
 auto = False
 
@@ -76,10 +78,15 @@ class Runner:
                 container.start()
 
                 while True:
-                    if container.logs().find(waitline) >= 0:
+                    if time.time() - startTime > 600:
                         break
-                    else:
-                        time.sleep(0.1)
+
+                    try:
+                        mqtt_client = mqtt.Client()
+                        mqtt_client.connect("localhost", 1883, 60)
+                        break
+                    except:
+                        time.sleep(0.1) # wait 100ms
                         pass
                         
                 # print run time
