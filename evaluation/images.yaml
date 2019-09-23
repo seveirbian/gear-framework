@@ -43,4 +43,5 @@
   # - "ghost"
   # - "kong"
   # - "gradle"
-  - "logstash"
+  # - "logstash"
+  - "eclipse-mosquitto"
