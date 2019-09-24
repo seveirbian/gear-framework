@@ -46,4 +46,5 @@
   # - "logstash"
   # - "eclipse-mosquitto"
   # - "solr"
-  - "vault"
+  # - "vault"
+  - "drupal"
