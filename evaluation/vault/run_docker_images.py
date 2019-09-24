@@ -78,7 +78,7 @@ class Runner:
                         break
 
                     try:
-                        req = urllib2.urlopen(urllib2.Request('http://localhost:8200'%hostPort))
+                        req = urllib2.urlopen(urllib2.Request('http://localhost:%d'%hostPort))
                         if req.code == 200:
                             print "OK!"
                         req.close()
