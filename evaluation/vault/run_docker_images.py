@@ -86,6 +86,7 @@ class Runner:
                     except urllib2.HTTPError as e:
                         if e.code == 404:
                             print "404, still OK!"
+                            req.close()
                             break
                         time.sleep(0.1) # wait 100ms
                         pass
