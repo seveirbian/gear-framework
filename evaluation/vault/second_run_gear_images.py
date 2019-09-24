@@ -88,7 +88,7 @@ class Runner:
                         req.close()
                         break
                     except urllib2.HTTPError as e:
-                        if e.code == 404:
+                        if e.code == 404 or e.code == 104:
                             print "404, still OK!"
                             req.close()
                             break
