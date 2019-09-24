@@ -82,13 +82,13 @@ class Runner:
                         break
 
                     try:
-                        req = urllib2.urlopen('http://localhost:%d'%hostPort, timeout = 10)
+                        req = urllib2.urlopen(urllib2.Request('http://localhost:8200'%hostPort))
                         if req.code == 200:
                             print "OK!"
                         req.close()
                         break
                     except urllib2.HTTPError as e:
-                        if e.code == 404 or e.code == 104:
+                        if e.code == 404:
                             print "404, still OK!"
                             req.close()
                             break
