@@ -10,6 +10,8 @@ import signal
 import urllib2
 import shutil
 import xlwt
+# package need to be installed, pip install hvac
+import hvac
 
 auto = False
 
@@ -82,16 +84,9 @@ class Runner:
                         break
 
                     try:
-                        req = urllib2.urlopen(urllib2.Request('http://localhost:%d'%hostPort))
-                        if req.code == 200:
-                            print "OK!"
-                        req.close()
+                        hvac_client = hvac.Client(url='https://localhost:8200')
                         break
-                    except urllib2.HTTPError as e:
-                        if e.code == 404:
-                            print "404, still OK!"
-                            req.close()
-                            break
+                    except:
                         time.sleep(0.1) # wait 100ms
                         pass
 
