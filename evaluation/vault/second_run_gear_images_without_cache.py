@@ -85,7 +85,7 @@ class Runner:
                         req = urllib2.urlopen('http://localhost:%d'%hostPort, timeout = 10)
                         if req.code == 200:
                             print "OK!"
-                        else req.code == 404:
+                        else if req.code == 404:
                             print "404, still OK!"
                         req.close()
                         break
