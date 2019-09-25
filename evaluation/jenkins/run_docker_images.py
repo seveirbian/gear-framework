@@ -85,7 +85,11 @@ class Runner:
                             print "OK!"
                         req.close()
                         break
-                    except:
+                    except urllib2.HTTPError as e: 
+                        if e.code == 403:
+                            print "also OK!"
+                            break
+                    else: 
                         time.sleep(0.1) # wait 100ms
                         pass
                         
