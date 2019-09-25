@@ -47,4 +47,5 @@
   # - "eclipse-mosquitto"
   # - "solr"
   # - "vault"
-  - "drupal"
+  # - "drupal"
+  - "jenkins"
