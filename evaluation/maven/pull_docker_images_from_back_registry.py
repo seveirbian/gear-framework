@@ -8,7 +8,7 @@ import xlwt
 
 auto = False
 
-private_registry = "202.114.10.146:9999/"
+private_registry = "202.114.10.146:10000/"
 
 # result
 result = [["tag", "finishTime", "size", "data"], ]
@@ -81,7 +81,7 @@ class Generator:
             print "Error: profile path is null"
         
         with open(self.profilePath, 'r') as f:
-            self.images = yaml.load(f, Loader=yaml.FullLoader)
+            self.images = yaml.load(f)
 
         return self.images
 
