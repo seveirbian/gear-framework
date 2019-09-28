@@ -89,6 +89,7 @@ def get_net_data():
     netCard = "/proc/net/dev"
     fd = open(netCard, "r")
 
+    data = 0
     for line in fd.readlines():
         if line.find("enp0s3") >= 0:
             field = line.split()
