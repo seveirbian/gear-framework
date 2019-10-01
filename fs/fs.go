@@ -293,7 +293,9 @@ func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.Lo
 			initLayerPath: d.initLayerPath, 
 		}
 		resp.EntryValid = ValidTime
-		resp.Attr = child.Attr()
+		attr := fuse.Attr{}
+		child.Attr(ctx, &attr)
+		resp.Attr = attr
 		return child, nil
 	} else {
 		if fInfo.Mode().IsRegular() {
@@ -307,7 +309,9 @@ func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.Lo
 				buff: nil, 
 			}
 			resp.EntryValid = ValidTime
-			resp.Attr = child.Attr()
+			attr := fuse.Attr{}
+			child.Attr(ctx, &attr)
+			resp.Attr = attr
 			return child, nil
 		} else {
 			child := &File {
@@ -320,7 +324,9 @@ func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.Lo
 				buff: nil, 
 			}
 			resp.EntryValid = ValidTime
-			resp.Attr = child.Attr()
+			attr := fuse.Attr{}
+			child.Attr(ctx, &attr)
+			resp.Attr = attr
 			return child, nil
 		}
 	}
