@@ -9,9 +9,6 @@ import subprocess
 import signal
 import urllib2
 import shutil
-import xlwt
-# package need to be installed, apt-get install python-mysqldb
-import MySQLdb
 
 auto = False
 
