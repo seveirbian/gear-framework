@@ -541,35 +541,33 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	// fmt.Println("f< ", f.relativePath, " >")
 	// fmt.Println("f.Attr< ", attr, " >")
 
-	go func() {
-		if f.relativePath == "/prefetched" || f.relativePath == "/RecordFiles" {
-			return
-		}
-		if f.isRegular {
-			// 创建硬链接到gear-work目录
-			indexPath := filepath.Join(f.indexImagePath, "..")
-			_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
+	if f.relativePath == "/prefetched" || f.relativePath == "/RecordFiles" {
+		return
+	}
+	if f.isRegular {
+		// 创建硬链接到gear-work目录
+		indexPath := filepath.Join(f.indexImagePath, "..")
+		_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
+		if err != nil {
+			initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
+			_, err := os.Lstat(initDir)
 			if err != nil {
-				initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
-				_, err := os.Lstat(initDir)
-				if err != nil {
-					// 复制路径
-					if pkg.CopyPath(f.indexImagePath, filepath.Join(indexPath, "gear-work"), f.relativePath) != true {
-						err := os.MkdirAll(initDir, os.ModePerm)
-						if err != nil {
-							logger.Warnf("Fail to create initDir for %v", err)
-						}
-					}
-				}
-				err = os.Link(filepath.Join(f.privateCachePath, f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
-				if err != nil {
-					if !strings.Contains(err.Error(), "file exists") {
-						logger.Fatalf("Fail to create hard link for %v", err)
+				// 复制路径
+				if pkg.CopyPath(f.indexImagePath, filepath.Join(indexPath, "gear-work"), f.relativePath) != true {
+					err := os.MkdirAll(initDir, os.ModePerm)
+					if err != nil {
+						logger.Warnf("Fail to create initDir for %v", err)
 					}
 				}
 			}
+			err = os.Link(filepath.Join(f.privateCachePath, f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
+			if err != nil {
+				if !strings.Contains(err.Error(), "file exists") {
+					logger.Fatalf("Fail to create hard link for %v", err)
+				}
+			}
 		}
-	}()
+	}
 	
 	if monitorFlag {
 		go func() {
@@ -754,35 +752,34 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 		fileHandler.buff = f.buff
 	}
 
-	go func() {
-		if f.relativePath == "/prefetched" || f.relativePath == "/RecordFiles" {
-			return
-		}
-		if f.isRegular {
-			// 创建硬链接到gear-work目录
-			indexPath := filepath.Join(f.indexImagePath, "..")
-			_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
+	// 创建硬链接到上层
+	if f.relativePath == "/prefetched" || f.relativePath == "/RecordFiles" {
+		return
+	}
+	if f.isRegular {
+		// 创建硬链接到gear-work目录
+		indexPath := filepath.Join(f.indexImagePath, "..")
+		_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
+		if err != nil {
+			initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
+			_, err := os.Lstat(initDir)
 			if err != nil {
-				initDir := path.Dir(filepath.Join(indexPath, "gear-work", f.relativePath))
-				_, err := os.Lstat(initDir)
-				if err != nil {
-					// 复制路径
-					if pkg.CopyPath(f.indexImagePath, filepath.Join(indexPath, "gear-work"), f.relativePath) != true {
-						err := os.MkdirAll(initDir, os.ModePerm)
-						if err != nil {
-							logger.Warnf("Fail to create initDir for %v", err)
-						}
-					}
-				}
-				err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
-				if err != nil {
-					if !strings.Contains(err.Error(), "file exists") {
-						logger.Fatalf("Fail to create hard link for %v", err)
+				// 复制路径
+				if pkg.CopyPath(f.indexImagePath, filepath.Join(indexPath, "gear-work"), f.relativePath) != true {
+					err := os.MkdirAll(initDir, os.ModePerm)
+					if err != nil {
+						logger.Warnf("Fail to create initDir for %v", err)
 					}
 				}
 			}
+			err = os.Link(filepath.Join("/var/lib/gear/public", f.privateCacheName), filepath.Join(indexPath, "gear-work", f.relativePath))
+			if err != nil {
+				if !strings.Contains(err.Error(), "file exists") {
+					logger.Fatalf("Fail to create hard link for %v", err)
+				}
+			}
 		}
-	}()
+	}
 
 	if monitorFlag {
 		go func() {
