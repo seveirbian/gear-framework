@@ -541,10 +541,7 @@ func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
 	// fmt.Println("f< ", f.relativePath, " >")
 	// fmt.Println("f.Attr< ", attr, " >")
 
-	if f.relativePath == "/prefetched" || f.relativePath == "/RecordFiles" {
-		return
-	}
-	if f.isRegular {
+	if f.isRegular && (f.relativePath == "/prefetched" || f.relativePath == "/RecordFiles") {
 		// 创建硬链接到gear-work目录
 		indexPath := filepath.Join(f.indexImagePath, "..")
 		_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
@@ -753,10 +750,7 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 	}
 
 	// 创建硬链接到上层
-	if f.relativePath == "/prefetched" || f.relativePath == "/RecordFiles" {
-		return
-	}
-	if f.isRegular {
+	if f.isRegular && (f.relativePath == "/prefetched" || f.relativePath == "/RecordFiles") {
 		// 创建硬链接到gear-work目录
 		indexPath := filepath.Join(f.indexImagePath, "..")
 		_, err = os.Lstat(filepath.Join(indexPath, "gear-work", f.relativePath))
