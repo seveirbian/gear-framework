@@ -8,6 +8,7 @@ file_nums = 0
 
 def summary():
     print "files under %s\n"%path
+    print "unique file number: %d\n"%len(hash_set)
     print "file number: %d\n"%file_nums
     print "storage size: %d\n"%storage
 
