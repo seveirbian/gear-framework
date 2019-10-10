@@ -17,7 +17,7 @@ def add_size(name):
     storage += fsize
 
 def insert(hash_value):
-    if hash_set.has_key(hashlib) == False:
+    if not hash_set.has_key(hash_value):
         hash_set[hash_value] = True
         return True
     return False
