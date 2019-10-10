@@ -40,6 +40,7 @@ def calculate(name):
     return the_hash.hexdigest()
 
 def traverse(path):
+    global file_nums
     if os.path.exists(path):
         for root, dirs, files in os.walk(path):
             for file in files:
