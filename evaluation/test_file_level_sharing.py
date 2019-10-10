@@ -15,6 +15,7 @@ def add_size(name):
     fsize = os.path.getsize(name)
     fsize = fsize/float(1024*1024)
     storage += fsize
+    print "current storage: %d\n"%storage
 
 def insert(hash_value):
     if not hash_set.has_key(hash_value):
@@ -23,8 +24,6 @@ def insert(hash_value):
     return False
 
 def calculate(name):
-    print name
-
     f = open(name)
  
     the_hash = hashlib.md5()
