@@ -4,10 +4,11 @@ import hashlib
 path = "/var/lib/docker/overlay2/"
 hash_set = {}
 storage = 0.0
+file_nums = 0
 
 def summary():
     print "files under %s\n"%path
-    print "file number: %d\n"%len(hash_set)
+    print "file number: %d\n"%file_nums
     print "storage size: %d\n"%storage
 
 def add_size(name):
@@ -47,6 +48,7 @@ def traverse(path):
                     hash_value = calculate(name)
                     if insert(hash_value) == True:
                         add_size(name)
+                    file_nums += 1
 
 if __name__ == "__main__":
     traverse(path)
