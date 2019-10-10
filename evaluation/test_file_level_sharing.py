@@ -23,6 +23,8 @@ def insert(hash_value):
     return False
 
 def calculate(name):
+    print name
+
     f = open(name)
  
     the_hash = hashlib.md5()
@@ -35,7 +37,7 @@ def calculate(name):
 
     f.close()
 
-    return thehash.hexdigest()
+    return the_hash.hexdigest()
 
 def traverse(path):
     if os.path.exists(path):
