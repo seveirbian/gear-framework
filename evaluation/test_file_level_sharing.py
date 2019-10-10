@@ -44,7 +44,7 @@ def traverse(path):
         for root, dirs, files in os.walk(path):
             for file in files:
                 name = os.path.join(root, file)
-                if os.path.isfile(name) and os.path.islink(name):
+                if os.path.isfile(name) and os.path.islink(name)!=True:
                     hash_value = calculate(name)
                     if insert(hash_value) == True:
                         add_size(name)
