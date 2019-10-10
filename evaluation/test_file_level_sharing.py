@@ -25,13 +25,13 @@ def insert(hash_value):
 def calculate(name):
     f = open(name)
  
-    thehash = hashlib.md5()
-
-    theline = f.readline()
+    the_hash = hashlib.md5()
      
-    while(theline):
-        thehash.update(theline)
-        theline = f.readline()
+    while True:
+        d = f.read(8096)
+        if not d:
+          break
+        the_hash.update(d)
 
     f.close()
 
