@@ -3,7 +3,7 @@ import hashlib
 
 path = "/var/lib/docker/overlay2/"
 hash_set = {}
-storage = 0
+storage = 0.0
 
 def summary():
     print "files under %s\n"%path
@@ -12,10 +12,10 @@ def summary():
 
 def add_size(name):
     global storage
-    fsize = os.path.getsize(name)
+    fsize = os.path.getsize(name)*1.0
     fsize = fsize/float(1024*1024)
     storage += fsize
-    print "current storage: %d\n"%storage
+    print "current storage: %f\n"%storage
 
 def insert(hash_value):
     if not hash_set.has_key(hash_value):
