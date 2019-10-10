@@ -33,6 +33,8 @@ def calculate(name):
         thehash.update(theline)
         theline = f.readline()
 
+    f.close()
+
     return thehash.hexdigest()
 
 def traverse(path):
