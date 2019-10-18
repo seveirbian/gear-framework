@@ -37,6 +37,7 @@ import (
 	"github.com/docker/docker/daemon/graphdriver"
 	// "github.com/docker/docker/pkg/directory"
 	graphPlugin "github.com/docker/go-plugins-helpers/graphdriver"
+	"github.com/seveirbian/gear/push"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 )
@@ -791,7 +792,7 @@ func (d *Driver) Diff(id, parent string) io.ReadCloser {
 		}
 
 		// 将所有gear文件推送到远程
-		pusher, err := push.InitPusher(pushDir, ManagerIp, ManagerPort	, false)
+		pusher, err := push.InitPusher(pushDir, d.ManagerIp, d.ManagerPort	, false)
 	    if err != nil {
 	        logger.Fatal("Fail to init a pusher to push gear image...")
 	    }
