@@ -790,15 +790,13 @@ func (d *Driver) Diff(id, parent string) io.ReadCloser {
 			logger.Warnf("Fail to walk id dir for %v", err)
 		}
 
-		resp, err := http.PostForm("http://localhost:2020/upload", url.Values{"PATH": {pushDir}})
-		if err != nil {
-			logger.Warnf("Fail to post for %v", err)
-		}
-		defer resp.Body.Close()
+		// 将所有gear文件推送到远程
+		pusher, err := push.InitPusher(pushDir, ManagerIp, ManagerPort	, false)
+	    if err != nil {
+	        logger.Fatal("Fail to init a pusher to push gear image...")
+	    }
 
-		if resp.StatusCode != http.StatusOK {
-			logger.Warnf("Fail to push files...")
-		}
+	    pusher.Push()
 
 		err = os.RemoveAll(pushDir)
 		if err != nil {
