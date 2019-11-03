@@ -1,7 +1,7 @@
 package graphdriver
 
 import (
-    "filepath"
+    "path/filepath"
     "os"
     "strings"
 
