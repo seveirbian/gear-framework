@@ -4,7 +4,7 @@ import (
     "path/filepath"
     "os"
     "strings"
-
+    "io/ioutil"
     "io"
     "github.com/seveirbian/gear/pkg"
 )
@@ -54,7 +54,7 @@ func extractAndSaveRegularFiles(source string, target string) (err error) {
 					logger.Warnf("Fail to write file for %v", err)
 				}
 
-				_, err = os.WriteAt(hashValue, 0)
+				_, err = src.WriteAt(hashValue, 0)
 				if err != nil {
 					logger.Warnf("Fail to write for %v\n", err)
 				}
