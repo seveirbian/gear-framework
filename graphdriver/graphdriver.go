@@ -800,9 +800,9 @@ func (d *Driver) Diff(id, parent string) io.ReadCloser {
 		if err != nil {
 			logger.Warnf("Fail to remove RecordFiles for %v", err)
 		}
-		err = os.Remove(prefetched)
+		err = os.Remove(prefetchedFile)
 		if err != nil {
-			logger.Warnf("Fail to remove prefetched for %v", err)
+			logger.Warnf("Fail to remove prefetchedFile for %v", err)
 		}
 
 		archive, err := archive.Tar(layerFs, archive.Uncompressed)
