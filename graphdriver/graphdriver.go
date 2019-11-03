@@ -793,6 +793,18 @@ func (d *Driver) Diff(id, parent string) io.ReadCloser {
 
 		layerFs := mountTarget
 
+		// 删除RecordFiles和prefetched文件
+		recordFiles := filepath.Join(mountTarget, "RecordFiles")
+		prefetchedFile := filepath.Join(mountTarget, "prefetched")
+		err = os.Remove(recordFiles)
+		if err != nil {
+			logger.Warnf("Fail to remove RecordFiles for %v", err)
+		}
+		err = os.Remove(prefetched)
+		if err != nil {
+			logger.Warnf("Fail to remove prefetched for %v", err)
+		}
+
 		archive, err := archive.Tar(layerFs, archive.Uncompressed)
 		if err != nil {
 			logger.Fatalf("Fail to get tar for %v", err)
