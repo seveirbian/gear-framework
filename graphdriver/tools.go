@@ -1,7 +1,12 @@
 package graphdriver
 
 import (
-    
+    "filepath"
+    "os"
+    "strings"
+
+    "io"
+    "github.com/seveirbian/gear/pkg"
 )
 
 var (
@@ -49,7 +54,7 @@ func extractAndSaveRegularFiles(source string, target string) (err error) {
 					logger.Warnf("Fail to write file for %v", err)
 				}
 
-				_, err := os.WriteAt(hashValue, 0)
+				_, err = os.WriteAt(hashValue, 0)
 				if err != nil {
 					logger.Warnf("Fail to write for %v\n", err)
 				}
