@@ -737,62 +737,24 @@ func (d *Driver) Diff(id, parent string) io.ReadCloser {
 		// 1. 将该层目录下的文件构建成gear镜像的目录树，即：将普通文件内容替换成内容的哈希值，内容以哈希值
 		// 命名上传到remote storage
 		currentDir := filepath.Join(d.home, id, "diff")
+		if err != nil {
+			logger.Fatalf("Fail to get image dir for %v\n", err)
+		}
 		pushDir := filepath.Join(GearPushPath, id)
 		err := os.MkdirAll(pushDir, os.ModePerm)
 		if err != nil {
 			logger.Warnf("Fail to make push dir for %v", err)
 		}
 
-		err = filepath.Walk(currentDir, func(path string, f os.FileInfo, err error) error {
-			if f == nil {
-	    		return err
-	    	}
-
-	    	// 防止本目录也处理了
-			pathSlice := strings.SplitAfter(path, currentDir)
-			if pathSlice[1] == "" {
-				return nil
-			}
-
-			if f.Mode().IsRegular() {
-				hashValue := []byte(pkg.HashAFileInMD5(path))
-
-				src, err := os.Open(path)
-				if err != nil {
-					logger.Warnf("Fail to open file: %s\n", path)
-					return err
-				}
-				defer src.Close()
-
-				dst, err := os.Create(filepath.Join(pushDir, string(hashValue)))
-				if err != nil {
-					logger.Warnf("Fail to create file: %s\n", filepath.Join(pushDir, string(hashValue)))
-					return err
-				}
-				defer dst.Close()
-
-				// 拷贝文件内容
-				_, err = io.Copy(dst, src)
-				if err != nil {
-					logger.Warn("Fail to copy file...")
-					return err
-				}
-
-				err = ioutil.WriteFile(path, hashValue, f.Mode().Perm())
-				if err != nil {
-					logger.Warnf("Fail to write file for %v", err)
-				}
-			}
-
-			return nil
-		})
+		// 将目标容器的私有diff目录的文件，去内容后，并将提取的内容存存储到push目录下
+		err = extractAndSaveRegularFiles(currentDir, pushDir)
 
 		if err != nil {
 			logger.Warnf("Fail to walk id dir for %v", err)
 		}
 
-		// 将所有gear文件推送到远程
-		pusher, err := push.InitPusher(pushDir, d.ManagerIp, d.ManagerPort	, false)
+		// 将所有push目录下的gear文件推送到远程
+		pusher, err := push.InitPusher(pushDir, d.ManagerIp, d.ManagerPort, false)
 	    if err != nil {
 	        logger.Fatal("Fail to init a pusher to push gear image...")
 	    }
