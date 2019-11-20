@@ -19,6 +19,8 @@ class Puller:
     
     def pull(self):
 
+        repos = self.images_to_pull[0]["repo"]
+
         for repo in repos:
             tags = self.images_to_pull[1][repo]
             for tag in tags:
