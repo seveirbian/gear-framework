@@ -23,7 +23,7 @@ class Puller:
             tags = self.images_to_pull[1][repo]
             for tag in tags:
 
-                image_to_build := "202.114.10.146:10000/" + repo + ":" + tag
+                image_to_build = "202.114.10.146:10000/" + repo + ":" + tag
                 print "start pulling: ", image_to_build
 
                 # get present time
