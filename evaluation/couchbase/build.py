@@ -26,12 +26,14 @@ class Puller:
             for tag in tags:
 
                 image_to_build = "202.114.10.146:10000/" + repo + ":" + tag
-                print "start pulling: ", image_to_build
+                print "start building: ", image_to_build
 
                 # get present time
                 startTime = time.time()
 
                 subprocess.call(cmd + " build " + image_to_build, shell=True)
+
+                buildTime = time.time() - startTime
 
                 # record the image and its pulling time
                 result.append([tag, buildTime])
